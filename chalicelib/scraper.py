@@ -117,6 +117,7 @@ def parse_event(url):
             # 空白にならないところまで親要素をたどる
             # お得な攻略方法獲得経験値2倍が「開催期間」としてでてくるのが冗長
             for kikan in desc.previous_siblings:
+                duplicate = False
                 if kikan == "\n":
                     # NavigableStringオブジェクトを操作したときのAttributeErrorを回避
                     continue
@@ -132,7 +133,12 @@ def parse_event(url):
                     notice["url"] = url
                     notice["begin"] = int(dt.strptime(start, "%Y/%m/%d %H:%M:%S").timestamp())
                     notice["end"] = int(dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp())
-                    notices.append(notice)
+                    for n in notices:
+                        if n["name"] == notice["name"]:
+                            duplicate = True
+                            break
+                    if not duplicate:
+                        notices.append(notice)
             # logger.info("previous_sibling: %s", desc.previous_sibling.previous_sibling.previous_sibling.previous_sibling)
 
     return notices
