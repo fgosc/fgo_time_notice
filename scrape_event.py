@@ -7,6 +7,7 @@ import dataclasses
 import json
 import unicodedata
 from typing import List
+import time
 
 import requests
 from bs4 import BeautifulSoup
@@ -64,8 +65,10 @@ def parse_campaign(url):
                 logger.debug(start)
                 logger.debug(end)
                 logger.debug(kikan.get_text(strip=True))
-                notice[name + " " + kikan.get_text(strip=True) + " 開始"] = dt.strptime(start, "%Y/%m/%d %H:%M:%S").timestamp()
-                notice[name + " " + kikan.get_text(strip=True) + " 終了"] = dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp()
+                # 終了時間が未了のやつのみいれる
+                if time.time() -  dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp() < 0:
+                    notice[name + " " + kikan.get_text(strip=True) + " 開始"] = dt.strptime(start, "%Y/%m/%d %H:%M:%S").timestamp()
+                    notice[name + " " + kikan.get_text(strip=True) + " 終了"] = dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp()
             # logger.info("previous_sibling: %s", desc.previous_sibling.previous_sibling.previous_sibling.previous_sibling)
 
     return notice
@@ -116,8 +119,10 @@ def parse_event(url):
                 logger.debug(start)
                 logger.debug(end)
                 logger.debug(kikan.get_text(strip=True))
-                notice[name + " " + kikan.get_text(strip=True) + " 開始"] = dt.strptime(start, "%Y/%m/%d %H:%M:%S").timestamp()
-                notice[name + " " + kikan.get_text(strip=True) + " 終了"] = dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp()
+                # 終了時間が未了のやつのみいれる
+                if time.time() -  dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp() < 0:
+                    notice[name + " " + kikan.get_text(strip=True) + " 開始"] = dt.strptime(start, "%Y/%m/%d %H:%M:%S").timestamp()
+                    notice[name + " " + kikan.get_text(strip=True) + " 終了"] = dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp()
             # logger.info("previous_sibling: %s", desc.previous_sibling.previous_sibling.previous_sibling.previous_sibling)
 
     return notice
