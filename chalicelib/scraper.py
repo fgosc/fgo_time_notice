@@ -20,6 +20,91 @@ quests = []
 
 OUTPUT_FILE = "fgo_event.json"
 
+def parse_distribution(url):
+    """
+    時間関係の部分を抽出
+    """
+    
+    html = requests.get(url)
+    soup = BeautifulSoup(html.content, "html.parser")
+    tag_item = soup.select_one('div.title')
+    title_pattern = r"(｢|「)(?P<title>.+)(｣|」)"
+    t = re.search(title_pattern, tag_item.get_text())
+    if t:
+        logger.debug("find title")
+        name = re.sub(title_pattern, r"\g<title>", t.group())
+    else:
+        logger.debug("not find title")
+        name = ""
+
+    notices = []
+
+    # まず日付をとる
+    desc = soup.select_one('span:contains("配信日時")')
+    pattern1 = r"(?P<s_year>20[12][0-9])年(?P<s_month>[0-9]{1,2})月(?P<s_day>[0-9]{1,2})日"
+    pattern2 = r"本配信:(?P<s_hour>([01][0-9]|2[0-3])):(?P<s_min>[0-5][0-9])～"
+    for kikan in desc.next_elements:
+        if kikan == "\n":
+            continue
+        m1 = re.search(pattern1, str(kikan))
+        if m1:
+            start_day = re.sub(pattern1, r"\g<s_year>/\g<s_month>/\g<s_day>", m1.group())
+        m2 = re.search(pattern2, str(kikan))
+        if m2:
+            start_time = re.sub(pattern2, r"\g<s_hour>:\g<s_min>", m2.group())
+            notice = {}
+            notice["name"] = name
+            notice["url"] = url
+            notice["begin"] = int(dt.strptime(start_day + " " + start_time, "%Y/%m/%d %H:%M").timestamp())
+            notice["end"] = None
+            notices.append(notice)
+            break
+                    
+
+#    logger.debug("descs: %s", descs)
+    # for desc in descs:
+    #     notice = {}
+    #     notice["name"] = name + " イベント開催予定"
+    #     notice["url"] = url
+    #     notice["begin"] = None
+    #     notice["end"] = None
+    #     notices.append(notice)
+
+    return notices
+
+def parse_preview(url):
+    """
+    時間関係の部分を抽出
+    """
+    
+    html = requests.get(url)
+    soup = BeautifulSoup(html.content, "html.parser")
+    tag_item = soup.select_one('div.title')
+    title_pattern = r"(｢|「)(?P<title>.+)(｣|」)"
+    t = re.search(title_pattern, tag_item.get_text())
+    if t:
+        logger.debug("find title")
+        name = re.sub(title_pattern, r"\g<title>", t.group())
+    else:
+        logger.debug("not find title")
+        name = ""
+
+    notices = []
+
+    descs = soup.select('span:contains("イベント開催予定") ~ span.em01')
+#    logger.debug("descs: %s", descs)
+    for desc in descs:
+        notice = {}
+        notice["name"] = name + " イベント開催予定"
+        notice["url"] = url
+        notice["begin"] = None
+        notice["end"] = None
+        notice["begin_alias"] =  desc.get_text(strip=True)    
+        notices.append(notice)
+
+    return notices
+
+
 def parse_campaign(url):
     """
     時間関係の部分を抽出
@@ -159,6 +244,10 @@ def parse_page(load_url):
             return None
     if "キャンペーン" in page_title:
         notices = parse_campaign(load_url)
+    elif "予告" in  page_title:
+        notices = parse_preview(load_url)
+    elif "配信" in  page_title:
+        notices = parse_distribution(load_url)
     else:
         notices = parse_event(load_url)
     return notices
