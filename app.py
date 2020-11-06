@@ -2,7 +2,7 @@ import io
 import json
 
 import boto3
-from chalice import Chalice
+from chalice import Chalice, Rate
 
 from chalicelib.scraper import get_pages
 from chalicelib import settings
@@ -12,7 +12,7 @@ s3resource = boto3.resource('s3')
 s3bucket = s3resource.Bucket(settings.BUCKET_NAME)
 
 
-@app.lambda_function()
+@app.schedule(Rate(12, unit=Rate.HOURS))
 def run(event, context):
     news_url = "https://news.fate-go.jp"
     notice = get_pages(news_url)
