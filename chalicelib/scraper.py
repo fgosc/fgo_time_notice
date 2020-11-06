@@ -19,11 +19,81 @@ logger = logging.getLogger(__name__)
 quests = []
 
 OUTPUT_FILE = "fgo_event.json"
-pattern1 = r"^(?P<s_year>20[12][0-9])年(?P<s_month>[0-9]{1,2})月(?P<s_day>[0-9]{1,2})日\([日月火水木金土]\)"
-pattern2 = r" (?P<s_hour>([0-9]|[01][0-9]|2[0-3])):(?P<s_min>[0-5][0-9])"
-pattern3 = r"～(?P<e_month>[0-9]{1,2})月(?P<e_day>[0-9]{1,2})日\([日月火水木金土]\)"
-pattern4 = r" (?P<e_hour>([01][0-9]|2[0-3])):(?P<e_min>[0-5][0-9])"
-pattern = pattern1 + pattern2 + pattern3 + pattern4
+pattern1 = r"(?P<s_year>20[12][0-9])年(?P<s_month>[0-9]{1,2})月(?P<s_day>[0-9]{1,2})日\([日月火水木金土]\)"
+pattern2 = r"(?P<s_hour>([0-9]|[01][0-9]|2[0-3])):(?P<s_min>[0-5][0-9])"
+pattern3 = r"(?P<e_month>[0-9]{1,2})月(?P<e_day>[0-9]{1,2})日\([日月火水木金土]\)"
+pattern4 = r"(?P<e_hour>([0-9]|[01][0-9]|2[0-3])):(?P<e_min>[0-5][0-9])"
+pattern = pattern1 + " " + pattern2 + "～" +  pattern3 + " " + pattern4
+pattern_sameday = pattern1 + " " + pattern2 + "～" +  pattern4
+pattern_undefine = pattern1 + " " + pattern2 + "～" + "未定"
+
+
+def parse_maintenance(url, expired_data=False):
+    """
+    メンテナンスを扱う
+    """
+    
+    html = requests.get(url)
+    soup = BeautifulSoup(html.content, "html.parser")
+    tag_item = soup.select_one('div.title')
+    if "臨時" in tag_item.get_text():
+        name = "臨時メンテナンス"
+    elif "緊急" in tag_item.get_text():
+        name = "緊急メンテナンス"
+    else:
+        name = "メンテナンス"
+
+    notices = []
+    if not expired_data and "終了" in tag_item.get_text():
+        return notices
+    cant_play = soup.select_one('p:contains("「Fate/Grand Order」をプレイすることができません")')
+    if cant_play is None:
+        return notices
+
+    # まず日付をとる
+    desc = soup.select_one('span.headline:contains("日時")')
+    for kikan in desc.next_elements:
+        if kikan == "\n":
+            continue
+        # 通常の13-18時メンテナンス用
+        m1 = re.search(pattern_sameday, str(kikan))
+        if m1:
+            start = re.sub(pattern_sameday, r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>", m1.group())
+            end = re.sub(pattern_sameday, r"\g<s_year>/\g<s_month>/\g<s_day> \g<e_hour>:\g<e_min>", m1.group())
+            notice = {}
+            notice["name"] = name
+            notice["url"] = url
+            notice["begin"] = int(dt.strptime(start, "%Y/%m/%d %H:%M").timestamp())
+            notice["end"] = int(dt.strptime(end, "%Y/%m/%d %H:%M").timestamp())
+            notices.append(notice)
+            break
+        # 日付をまたぐメンテナンス用(発生頻度: 超レア)
+        m2 = re.search(pattern, str(kikan))
+        if m2:
+            start = re.sub(pattern, r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>", m2.group())
+            end = re.sub(pattern, r"\g<s_year>/\g<s_month>/\g<e_day> \g<e_hour>:\g<e_min>", m2.group())
+            notice = {}
+            notice["name"] = name
+            notice["url"] = url
+            notice["begin"] = int(dt.strptime(start, "%Y/%m/%d %H:%M").timestamp())
+            notice["end"] = int(dt.strptime(end, "%Y/%m/%d %H:%M").timestamp())
+            notices.append(notice)
+            break
+
+        # 緊急メンテナンス
+        m3 = re.search(pattern_undefine, str(kikan))
+        if m3:
+            start = re.sub(pattern_undefine, r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>", m3.group())
+            notice = {}
+            notice["name"] = name
+            notice["url"] = url
+            notice["begin"] = int(dt.strptime(start, "%Y/%m/%d %H:%M").timestamp())
+            notice["end"] = None
+            notices.append(notice)
+            break
+
+    return notices
+
 
 def parse_distribution(url):
     """
@@ -329,6 +399,8 @@ def parse_page(load_url, expired_data=False):
         notices = parse_preview(load_url)
     elif "配信" in  page_title:
         notices = parse_distribution(load_url)
+    elif "メンテナンス" in  page_title:
+        notices = parse_maintenance(load_url)
     else:
         notices = parse_event(load_url, expired_data)
     return notices
@@ -352,8 +424,10 @@ def get_pages(url, expired_data=False):
 def main():
     # Webページを取得して解析する
     news_url = "https://news.fate-go.jp"
-    notices = get_pages(news_url)
-    data = json.dumps(notices, ensure_ascii=False)
+    maintenance_url = "https://news.fate-go.jp/maintenance"
+    notices_n = get_pages(news_url)
+    notices_m = get_pages(maintenance_url)
+    data = json.dumps(notices_n + notices_m, ensure_ascii=False)
     print(data)
 
 
