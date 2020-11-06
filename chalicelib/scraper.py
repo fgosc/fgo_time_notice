@@ -237,6 +237,7 @@ def parse_event(url, expired_data=False):
         if m1:
             start = re.sub(pattern, r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>:00", m1.group())
             end = re.sub(pattern, r"\g<s_year>/\g<e_month>/\g<e_day> \g<e_hour>:\g<e_min>:59", m1.group())
+            year = re.sub(pattern, r"\g<s_year>", m1.group())
             # 空白にならないところまで親要素をたどる
             # お得な攻略方法獲得経験値2倍が「開催期間」としてでてくるのが冗長
             for kikan in desc.previous_siblings:
@@ -292,6 +293,20 @@ def parse_event(url, expired_data=False):
                         notice["end"] = int(dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp())
                         notices.append(notice)
 
+    # レイドの解放期間を取得
+    raid_notice = {}
+    pattern0 = r"(?P<s_month>[0-9]{1,2})月(?P<s_day>[0-9]{1,2})日\([日月火水木金土]\)"
+
+    target = soup.select_one('p:contains("イベント参加中のマスター全員で強敵に挑む、特殊な形式のクエスト")')
+    if target is not None:
+        m2 = re.search(pattern0 + pattern2, target.get_text(strip=True))
+        if m2:
+            raid_start = re.sub(pattern0 + pattern2, year + r"/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>:00", m2.group())
+            raid_notice["name"] = name + " レイド解放日時"
+            raid_notice["url"] = url
+            raid_notice["begin"] = int(dt.strptime(raid_start, "%Y/%m/%d %H:%M:%S").timestamp())
+            raid_notice["end"] = None
+            notices.append(raid_notice)
     return notices
 
 
