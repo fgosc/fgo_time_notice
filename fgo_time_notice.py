@@ -15,7 +15,10 @@ from chalicelib.scraper import get_pages
 firstfg = True
 filename = './top_banner.png'
 news_url = "https://news.fate-go.jp"
-notices = get_pages(news_url)
+maintenance_url = "https://news.fate-go.jp/maintenance"
+notices_n = get_pages(news_url)
+notices_m = get_pages(maintenance_url)
+notices = notices_n + notices_m
 
 
 def get_img_data(f, maxsize=(800, 300), first=False):
