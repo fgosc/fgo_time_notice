@@ -13,7 +13,7 @@ s3bucket = s3resource.Bucket(settings.BUCKET_NAME)
 
 
 @app.schedule(Rate(12, unit=Rate.HOURS))
-def run(event, context):
+def run(event):
     news_url = "https://news.fate-go.jp"
     notice = get_pages(news_url)
     data = json.dumps(notice, ensure_ascii=False)
