@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import time
 import json
 import datetime
@@ -85,19 +86,35 @@ sg.theme('Dark')
 
 event_time = []
 event_date = []
+next_quest_open = []
 banner_dl_flag = False
+current_time = time.time()
 for event in notices:
     if not banner_dl_flag:
         # バナーを自動取得
-        current_time = time.time()
         if event["begin"] is not None and event["end"] is not None:
             if event["begin"] < current_time < event["end"]:
                 dl_banner(event["url"])
                 banner_dl_flag = True
 
+    if event["end"] is not None:
+        if event["end"] < current_time:
+            continue
+
+    # クエスト解放日時のロジックは解放されていない最新のクエストのみ表示する
+    # 同じイベントのクエスト解放日時は古いほうからデータに入っている前提
+    if "解放日時" in event["name"]:
+        # もし解放日時がすでにすぎていたら無視
+        if event["begin"] < current_time:
+            continue
+        event_names = event["name"].split(" ")
+        if event_names[0] not in next_quest_open:
+            event_time.append([event["name"], event["begin"], event["url"]])
+            next_quest_open.append(event_names[0])
+            continue
     if event["begin"] is not None and "交換期間" not in event["name"]:
         event_time.append([event["name"] + " 開始", event["begin"], event["url"]])
-    if event["end"] is not None:
+    if event["end"] is not None and "解放日時" not in event["name"]:
         event_time.append([event["name"] + " 終了", event["end"], event["url"]])
     if "begin_alias" in event.keys():
         if event["begin_alias"] is not None:
@@ -118,7 +135,7 @@ for i, event in enumerate(event_time):
         h, m, s = get_h_m_s(td)
     # 形式を整える
     td_format = "{}日{}時間{}分{}秒".format(days, h, m, s)
-    event_layouts.append([sg.Text(event[0], enable_events=True, key=event[2] + ' ' + str(i), font=('Helvetica', 10, 'underline')), sg.Text(size=(15, 1), key='-event_jikan' + str(i) +'-')])
+    event_layouts.append([sg.Text(event[0], enable_events=True, key=event[2] + ' ' + str(i), font=('Helvetica', 10, 'underline')), sg.Text(size=(16, 1), key='-event_jikan' + str(i) +'-')])
 for j, event in enumerate(event_date):
     event_layouts.append([sg.Text(event[0], enable_events=True, key=event[2] + ' ' + str(j + 100), font=('Helvetica', 10, 'underline')), sg.Text(event[1])])
 
