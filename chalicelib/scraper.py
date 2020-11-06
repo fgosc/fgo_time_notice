@@ -390,6 +390,7 @@ def parse_page(load_url, expired_data=False):
                     )
     for word in ["TIPS"
                  "重要", "交換可能なアイテムについて",
+                 "召喚"
                 ]:
         if word in page_title:
             return None
