@@ -103,7 +103,12 @@ for event in notices:
 
     # クエスト解放日時のロジックは解放されていない最新のクエストのみ表示する
     # 同じイベントのクエスト解放日時は古いほうからデータに入っている前提
-    if "解放日時" in event["name"]:
+    if "レイド解放日時" in event["name"]:
+        # もし解放日時がすでにすぎていたら無視
+        if event["begin"] < current_time:
+            continue
+        event_time.append([event["name"], event["begin"], event["url"]])
+    elif "解放日時" in event["name"]:
         # もし解放日時がすでにすぎていたら無視
         if event["begin"] < current_time:
             continue
