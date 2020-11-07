@@ -56,7 +56,7 @@ def get_h_m_s(td):
 
 
 def show_local_time():
-    local_time = time.strftime('%H:%M%p')
+    local_time = time.strftime('%I:%M%p')
     return local_time
 
 
@@ -65,7 +65,7 @@ def show_server_time():
     日本時間を返す
     """
     jst_datetime = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
-    server_time = datetime.datetime.strftime(jst_datetime, '%H:%M%p')
+    server_time = datetime.datetime.strftime(jst_datetime, '%I:%M%p')
     return server_time
 
 
