@@ -206,7 +206,7 @@ def parse_campaign(url, expired_data=False):
 #    logger.debug("descs: %s", descs)
     # 公式のキャンペーン期限を抽出
     for desc in descs:
-        flag = False
+        flag = False #重複チェック
         notice = {}
 #        if re.search(pattern1 + pattern2 + pattern3 + pattern4, str(desc)):
         m1 = re.search(pattern, desc.get_text(strip=True))
@@ -214,6 +214,37 @@ def parse_campaign(url, expired_data=False):
             flag = True
             start = re.sub(pattern, r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>:00", m1.group())
             end = re.sub(pattern, r"\g<s_year>/\g<e_month>/\g<e_day> \g<e_hour>:\g<e_min>:59", m1.group())
+            # 空白にならないところまで親要素をたどる
+            # お得な攻略方法獲得経験値2倍が「開催期間」としてでてくるのが冗長
+            for kikan in desc.previous_siblings:
+                if kikan == "\n":
+                    # NavigableStringオブジェクトを操作したときのAttributeErrorを回避
+                    continue
+                elif kikan.get_text(strip=True) in ["", "◆","受け取り期間"]:
+                    # 受け取り期間はスキップする手抜き実装
+                    continue
+                logger.debug(name)
+                logger.debug(start)
+                logger.debug(end)
+                logger.debug(kikan.get_text(strip=True))
+                if expired_data:
+                    cond = 1
+                else:
+                    cond = time.time() - dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp() < 0
+                if cond:
+                    notice["name"] = name + " " + kikan.get_text(strip=True)
+                    notice["url"] = url
+                    notice["begin"] = int(dt.strptime(start, "%Y/%m/%d %H:%M:%S").timestamp())
+                    notice["end"] = int(dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp())
+                    notices.append(notice)
+        if flag:
+            break
+
+        m2 = re.search(pattern_sameday, desc.get_text(strip=True))
+        if m2:
+            flag = True
+            start = re.sub(pattern_sameday, r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>:00", m2.group())
+            end = re.sub(pattern_sameday, r"\g<s_year>/\g<s_month>/\g<s_day> \g<e_hour>:\g<e_min>:59", m2.group())
             # 空白にならないところまで親要素をたどる
             # お得な攻略方法獲得経験値2倍が「開催期間」としてでてくるのが冗長
             for kikan in desc.previous_siblings:
