@@ -29,8 +29,6 @@ $ python scrape_event.py
 ### 概要
 [FGO time](https://www.mitsunee.com/fgo/time/)の日本版FGO対応クローンのようなアプリです
 
-項目をクリックするとブラウザで該当するリンクが開かれます
-
 ### インストール
 ```
 $ pip install -r requirements_tn.txt
@@ -41,4 +39,5 @@ $ pip install -r requirements_tn.txt
 $ python fgo_time_notice.py
 ```
 ### 使い方
-「データ更新」ボタンを押すとAPIからデータを取得して情報更新します
+- 項目をクリックするとブラウザで該当するリンクが開かれます
+- 「データ更新」ボタンを押すとAPIからデータを取得して情報更新します
