@@ -12,7 +12,7 @@ Fate Grand/Order のお知らせに関する時刻をJSON形式で取得する
 
 ## 仕様
 ```
-$ pip scrape_event.py
+$ python scrape_event.py
 ```
 でFate Grand/Orderのお知らせから時間に関する情報をJSON形式で出力します
 
