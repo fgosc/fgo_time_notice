@@ -30,6 +30,8 @@ $ python scrape_event.py
 [FGO time](https://www.mitsunee.com/fgo/time/)の日本版FGO対応クローンのようなアプリです
 
 ### インストール
+※ Windows の場合、Packageから実行ファイルをZIPで取得できます
+
 ```
 $ pip install -r requirements_tn.txt
 ```
