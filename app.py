@@ -2,7 +2,7 @@ import io
 import json
 
 import boto3
-from chalice import Chalice, Rate
+from chalice import Chalice, Cron
 
 from chalicelib.scraper import get_pages
 from chalicelib import settings
@@ -12,7 +12,9 @@ s3resource = boto3.resource('s3')
 s3bucket = s3resource.Bucket(settings.BUCKET_NAME)
 
 
-@app.schedule(Rate(12, unit=Rate.HOURS))
+# 設定は UTC 時刻基準 (AWS の仕様)
+# 1800-2200 の間で毎時10分、40分
+@app.schedule(Cron('10,40', '9-13', '*', '*', '?', '*'))
 def run(event):
     news_url = "https://news.fate-go.jp"
     notice = get_pages(news_url)
