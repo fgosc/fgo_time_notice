@@ -17,8 +17,10 @@ s3bucket = s3resource.Bucket(settings.BUCKET_NAME)
 @app.schedule(Cron('10,40', '9-13', '*', '*', '?', '*'))
 def run(event):
     news_url = "https://news.fate-go.jp"
-    notice = get_pages(news_url)
-    data = json.dumps(notice, ensure_ascii=False)
+    maintenance_url = "https://news.fate-go.jp/maintenance"
+    notices_n = get_pages(news_url)
+    notices_m = get_pages(maintenance_url)
+    data = json.dumps(notices_n + notices_m, ensure_ascii=False)
     bio = io.BytesIO(data.encode('utf-8'))
 
     obj = s3bucket.Object(settings.JSON_PATH)
