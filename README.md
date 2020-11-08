@@ -24,7 +24,13 @@ $ pip scrape_event.py
 - メンテナンス
 - カルデア放送局放送時間
 
+----
 ## fgo_time_notice.py の使い方
+### 概要
+[FGO time](https://www.mitsunee.com/fgo/time/)の日本版FGO対応クローンのようなアプリです
+
+項目をクリックするとブラウザで該当するリンクが開かれます
+
 ### インストール
 ```
 $ pip install -r requirements_tn.txt
