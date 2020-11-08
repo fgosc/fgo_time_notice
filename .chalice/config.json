@@ -3,7 +3,17 @@
   "app_name": "fgo_time_notice",
   "stages": {
     "dev": {
-      "api_gateway_stage": "api"
+      "api_gateway_stage": "api",
+      "lambda_functions": {
+        "run": {
+          "environment_variables": {
+            "TZ": "Asia/Tokyo"
+          },
+          "rebuild_outputs": {
+            "lambda_timeout": 120
+          }
+        }
+      }
     }
   }
 }
