@@ -6,12 +6,25 @@ Fate Grand/Order のお知らせに関する時刻をJSON形式で取得する
 
 [FGO time](https://www.mitsunee.com/fgo/time/)　の日本語版サポートが無くなってしまったのでアイデアを参考にしつつ同様な機能を持つものの作成を目指したもの
 
-- 実装:JSON [events.json](https://fgojunks.max747.org/timer/assets/events.json)
+- 実装:API [events.json](https://fgojunks.max747.org/timer/assets/events.json)
 - 上記を使ったアプリ版: fgo_time_notice.py
 - 上記を使ったWEB版: [FGO Timer](https://fgojunks.max747.org/timer/)
 
+## 仕様
+```
+$ pip scrape_event.py
+```
+でFate Grand/Orderのお知らせから時間に関する情報を取得します
 
-## fgo_time_notice.py
+取得するお知らせは以下の通りです
+- イベント
+- キャンペーン
+  - フレンドポイント獲得量2倍キャンペーン(FPCP)
+  - 大成功・極大成功n倍
+- メンテナンス
+- カルデア放送局放送時間
+
+## fgo_time_notice.py の使い方
 ### インストール
 ```
 $ pip install -r requirements_tn.txt
@@ -21,3 +34,5 @@ $ pip install -r requirements_tn.txt
 ```
 $ python fgo_time_notice.py
 ```
+### 使い方
+「データ更新」ボタンを押すとAPIからデータを取得して情報更新します
