@@ -19,7 +19,6 @@ def run(event):
     notices_n = get_pages(news_url)
     notices_m = get_pages(maintenance_url)
     data = json.dumps(notices_n + notices_m, ensure_ascii=False)
-    data = json.dumps(notice, ensure_ascii=False)
     bio = io.BytesIO(data.encode('utf-8'))
 
     obj = s3bucket.Object(settings.JSON_PATH)
