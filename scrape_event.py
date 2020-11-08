@@ -12,8 +12,10 @@ logger = logging.getLogger(__name__)
 def main():
     # Webページを取得して解析する
     news_url = "https://news.fate-go.jp"
-    notice = get_pages(news_url)
-    data = json.dumps(notice, ensure_ascii=False)
+    maintenance_url = "https://news.fate-go.jp/maintenance"
+    notices_n = get_pages(news_url)
+    notices_m = get_pages(maintenance_url)
+    data = json.dumps(notices_n + notices_m, ensure_ascii=False)
     print(data)
 
 
