@@ -5,6 +5,9 @@ import datetime
 import webbrowser
 import io
 import requests
+import configparser
+import os
+import sys
 
 from PIL import Image, ImageTk
 import PySimpleGUI as sg
@@ -19,6 +22,23 @@ news_url = "https://news.fate-go.jp"
 maintenance_url = "https://news.fate-go.jp/maintenance"
 json_url = "https://fgojunks.max747.org/timer/assets/events.json"
 dl_banner_url = ""
+ap_jikan = int(datetime.datetime.now().timestamp())
+
+# *.ini読み込み
+config_ini = configparser.ConfigParser()
+config_ini_path = 'fgo_time_notice.ini'
+
+# 指定したiniファイルが存在しない場合、エラー発生
+if not os.path.exists(config_ini_path):
+    print("[Error]設定ファイルがありません: " + config_ini_path)
+    sys.exit()
+
+config_ini.read(config_ini_path, encoding='utf-8')
+
+# iniの値取得
+read_default = config_ini['fgo_time_notice']
+var_max_ap = read_default.get('max_ap')
+ap_jikan = int(read_default.get('ap_recover_time'))
 
 def update_data():
     """
@@ -152,6 +172,8 @@ def make_window(location=None):
         if "begin_alias" in event.keys():
             if event["begin_alias"] is not None:
                 event_date.append([event["name"], event["begin_alias"], event["url"]])
+    if ap_jikan > current_time:
+        event_time.append(["AP全回復まで", ap_jikan, ""])
 
     event_time = sorted(event_time, key=lambda x: x[1])
 
@@ -170,8 +192,11 @@ def make_window(location=None):
         # 形式を整える
         td_format = "{}日{}時間{}分{}秒".format(days, h, m, s)
         # event_layouts.append([sg.Text(event[0], enable_events=True, key=event[2] + ' ' + str(i), font=('Helvetica', 10, 'underline')), sg.Text(size=(16, 1), key='-event_jikan' + str(i) +'-')])
-        event_title_f.append([sg.Text(event[0], enable_events=True, key=event[2] + ' ' + str(i), font=('Helvetica', 10, 'underline'))])
-        event_time_f.append([sg.Text(size=(16, 1), justification='right', key='-event_jikan' + str(i) +'-')])
+        if event[2] != "":
+            event_title_f.append([sg.Text(event[0], enable_events=True, key=event[2] + ' ' + str(i), font=('Helvetica', 10, 'underline'))])
+        else:
+            event_title_f.append([sg.Text(event[0], enable_events=True, font=('Helvetica', 10))])
+        event_time_f.append([sg.Text(size=(16, 1), justification='right', key='event_jikan' + str(i))])
     for j, event in enumerate(event_date):
         event_title_f.append([sg.Text(event[0], enable_events=True, key=event[2] + ' ' + str(j + 100), font=('Helvetica', 10, 'underline'))])
         event_time_f.append([sg.Text(event[1], size=(16, 1), justification='right')])
@@ -217,12 +242,25 @@ def make_window(location=None):
         justification="center",
         display_row_numbers=False,
         )]])
+    
+    t3 = sg.Tab("AP回復設定", [
+            [sg.Text('最大AP', size=(6, 1)), sg.InputText(var_max_ap, size=(3, 1), key='-max_ap-', enable_events=True)],
+            [sg.Text('現在AP', size=(6, 1)), sg.InputText('142', size=(3, 1), key='-current_ap-', enable_events=True)],
+            [sg.Text('次の回復まで', size=(12, 1)),
+             sg.InputText('0', size=(1, 1), key='-current_ap_min-', enable_events=True),
+             sg.Text(':', size=(1, 1)),
+             sg.InputText('00', size=(2, 1), key='-current_ap_sec-', enable_events=True),
+             ],
+            [sg.Text('全回復まで', size=(10, 1)), sg.Text(size=(20, 1), key='ap_time'),
+            sg.Submit(button_text='計算', key='-ap_calc-')],
+            [sg.Submit(button_text='「イベント」タブに反映', key='-ap_countdown-')]]
+        )
 #         row_colors=((0,'white', 'black'),(1,'white', 'black'),(2,'white', 'black'),(3,'white', 'black'))),
 
     layout = [
               [flame0, flame1],
               [sg.Image(data=get_img_data(filename, first=firstfg))],
-              [sg.TabGroup([[t1, t2]])]]
+              [sg.TabGroup([[t1, t2, t3]])]]
     # layout = layout + flame_list
 
     if location is None:
@@ -248,7 +286,8 @@ while True:
         window['-server_time-'].update(server_time)
         for i in range(len(event_time)):
             event_jikan = show_event_time(event_time[i][1])
-            window['-event_jikan' + str(i) + '-'].update(event_jikan)
+            window['event_jikan' + str(i)].update(event_jikan)
+        window['ap_time'].update(show_event_time(ap_jikan))
     elif event.startswith("http"):
         tmp = event.split(' ')
         webbrowser.open(tmp[0])
@@ -256,5 +295,55 @@ while True:
         location = window.CurrentLocation()
         window.close()
         window, event_time = make_window(location)
+    elif event in '-ap_calc-':
+        if not(20 <= int(values['-max_ap-']) <= 142):
+            sg.Popup("有効なAPの範囲外です")
+        if not(0 <= int(values['-current_ap-']) <= 999999999):
+            sg.Popup("有効なAPの範囲外です")
+        if not(0 <= int(values['-current_ap_min-']) <= 4):
+            sg.Popup("有効な時間(分)の範囲外です")
+        if not(0 <= int(values['-current_ap_sec-']) <= 59):
+            sg.Popup("有効な時間(秒)の範囲外です")
+        else:
+            calc_ap = int(values['-max_ap-']) - min(int(values['-max_ap-']), int(values["-current_ap-"]))
+            var_max_ap = int(values['-max_ap-'])
+            # calc_time = calc_ap * 5
+            # 表示上の問題で0秒にリセットされたように見えるよう1秒加える
+            td = datetime.timedelta(minutes=(calc_ap)* 5, seconds=1)
+            # 00:00 のために-1して300で割った商を使用
+            diff_sec = (int(values['-current_ap_min-'])*60 + int(values['-current_ap_sec-']) - 1) % 300 + 1
+            td2 = datetime.timedelta(seconds=300 - diff_sec)
+            dt = datetime.datetime.now() + td - td2
+            ap_jikan = int(dt.timestamp())
+    elif event in '-ap_countdown-':
+        if show_event_time(ap_jikan) == "0日00時間00分00秒":
+            sg.Popup("全回復しているため「イベント」タブには入りません")
+        else:
+            location = window.CurrentLocation()
+            window.close()
+            window, event_time = make_window(location)
+    elif event in '-max_ap-':
+        if not values['-max_ap-'].isdecimal():
+            window['-max_ap-'].update(values['-max_ap-'][:-1])
+    elif event in '-current_ap-':
+        if not values['-current_ap-'].isdecimal():
+            window['-current_ap-'].update(values['-current_ap-'][:-1])
+    elif event in '-current_ap_min-':
+        if not values['-current_ap_min-'].isdecimal():
+            window['-current_ap_min-'].update(values['-current_ap_min-'][:-1])
+    elif event in '-current_ap_sec-':
+        if not values['-current_ap_sec-'].isdecimal():
+            window['-current_ap_sec-'].update(values['-current_ap_sec-'][:-1])
+
+# *.ini保存
+config = configparser.ConfigParser()
+section1 = "fgo_time_notice"
+config.add_section(section1)
+config.set(section1, "max_ap", str(var_max_ap))
+config.set(section1, "ap_recover_time", str(ap_jikan))
+
+settingfile = os.path.join(os.path.dirname(__file__), config_ini_path)
+with open(settingfile, "w") as file:
+    config.write(file)
 
 window.close()
