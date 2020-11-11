@@ -363,7 +363,7 @@ def parse_event(url, expired_data=False):
                     notice["begin"] = int(dt.strptime(start, "%Y/%m/%d %H:%M:%S").timestamp())
                     notice["end"] = int(dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp())
                     for n in notices:
-                        if n["name"] == notice["name"]:
+                        if n["name"] == notice["name"] and n["end"] == notice["end"]:
                             duplicate = True
                             break
                     if not duplicate:
