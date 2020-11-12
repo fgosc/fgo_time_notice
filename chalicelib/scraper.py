@@ -349,8 +349,9 @@ def parse_event(url, expired_data=False):
                 if kikan == "\n":
                     # NavigableStringオブジェクトを操作したときのAttributeErrorを回避
                     continue
-                elif kikan.get_text(strip=True) in ["", "◆", "開催期間"]:
+                elif kikan.get_text(strip=True) in ["", "◆", "開催期間", "受け取り期間"]:
                     # 開催期間は配布鯖経験値2倍期間をスキップする手抜き実装
+                    # 受け取り期間はログインボーナスをスキップする手抜き実装
                     continue
                 logger.debug(name)
                 logger.debug(start)
