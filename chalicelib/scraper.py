@@ -454,7 +454,11 @@ def get_pages(url, expired_data=False):
     for tag in tag_item:
         load_url = base_url + tag.get("href")
         logger.debug(load_url)
-        event_list = parse_page(load_url, expired_data)
+        try:
+            event_list = parse_page(load_url, expired_data)
+        except Exception as e:
+            logger.exception(e)
+            event_list = None
         if event_list is not None:
             notices += event_list
     return notices
