@@ -98,6 +98,7 @@ def parse_maintenance(url, expired_data=False):
 def parse_distribution(url):
     """
     カルデア放送局の配信のお知らせを扱う
+    開始時間しかないので放送が始まったら出力しない
     """
     
     html = requests.get(url)
@@ -127,12 +128,14 @@ def parse_distribution(url):
         m2 = re.search(pattern2, str(kikan))
         if m2:
             start_time = re.sub(pattern2, r"\g<s_hour>:\g<s_min>", m2.group())
-            notice = {}
-            notice["name"] = name
-            notice["url"] = url
-            notice["begin"] = int(dt.strptime(start_day + " " + start_time, "%Y/%m/%d %H:%M").timestamp())
-            notice["end"] = None
-            notices.append(notice)
+            cond = time.time() - int(dt.strptime(start_day + " " + start_time, "%Y/%m/%d %H:%M").timestamp()) < 0
+            if cond:
+                notice = {}
+                notice["name"] = name
+                notice["url"] = url
+                notice["begin"] = int(dt.strptime(start_day + " " + start_time, "%Y/%m/%d %H:%M").timestamp())
+                notice["end"] = None
+                notices.append(notice)
             break
                     
 
@@ -430,7 +433,10 @@ def parse_page(load_url, expired_data=False):
     elif "予告" in  page_title:
         notices = parse_preview(load_url)
     elif "配信" in  page_title:
-        notices = parse_distribution(load_url)
+        if "発表" in  page_title:
+            return {}
+        else:
+            notices = parse_distribution(load_url)
     elif "メンテナンス" in  page_title:
         notices = parse_maintenance(load_url)
     else:
