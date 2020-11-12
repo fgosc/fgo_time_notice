@@ -47,11 +47,11 @@ def update_data():
     """
     r_get = requests.get(json_url)
     notices = r_get.json()
+    # # dataを自身で作成 起動速度は遅い
+    # notices_n = get_pages(news_url)
+    # notices_m = get_pages(maintenance_url)
+    # notices = notices_n + notices_m
     return notices
-# # dataを自身で作成 起動速度は遅い
-# notices_n = get_pages(news_url)
-# notices_m = get_pages(maintenance_url)
-# notices = notices_n + notices_m
 
 
 def get_img_data(f, maxsize=(800, 300), first=False):
@@ -122,7 +122,10 @@ def dl_banner(url):
     soup = BeautifulSoup(html.content, "html.parser")
     tag_item = soup.select_one('img[alt="TOPバナー"]')
     base_url = "https://news.fate-go.jp"
-    dl_url = base_url + tag_item["src"]
+    if tag_item["src"][0] == "/":
+        dl_url = base_url + tag_item["src"]
+    else:
+        dl_url = base_url + '/' + tag_item["src"]
     response = requests.get(dl_url)
     with open(filename, 'wb') as savefile:
         savefile.write(response.content)
@@ -165,8 +168,10 @@ def make_window(location=None):
                 event_time.append([event["name"], event["begin"], event["url"]])
                 next_quest_open.append(event_names[0])
                 continue
-        if event["begin"] is not None and "交換期間" not in event["name"]:
-            event_time.append([event["name"] + " 開始", event["begin"], event["url"]])
+        if event["begin"] is not None and ("交換期間" not in event["name"] and "受け取り期間" not in event["name"]):
+            if event["begin"] > current_time:
+                # 開始時間がすぎていたら表示しない
+                event_time.append([event["name"] + " 開始", event["begin"], event["url"]])
         if event["end"] is not None and "解放日時" not in event["name"]:
             event_time.append([event["name"] + " 終了", event["end"], event["url"]])
         if "begin_alias" in event.keys():

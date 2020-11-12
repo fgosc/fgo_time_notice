@@ -374,6 +374,7 @@ def parse_event(url, expired_data=False):
             # logger.info("previous_sibling: %s", desc.previous_sibling.previous_sibling.previous_sibling.previous_sibling)
 
     # クエストの解放期間を取得
+    # 解放期間が直近のクエスト一つを出すよう変更
     target = soup.select_one('p:contains("【クエストの開催期間】") ~ table.trbgcolor')
     if target is None:
         return notices
@@ -393,9 +394,12 @@ def parse_event(url, expired_data=False):
                     else:
                         cond = time.time() - dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp() < 0
                     if cond:
-                        notice["begin"] = int(dt.strptime(start, "%Y/%m/%d %H:%M:%S").timestamp())
-                        notice["end"] = int(dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp())
-                        notices.append(notice)
+                        cond2 = time.time() - dt.strptime(start, "%Y/%m/%d %H:%M:%S").timestamp() < 0
+                        if cond2:
+                            notice["begin"] = int(dt.strptime(start, "%Y/%m/%d %H:%M:%S").timestamp())
+                            notice["end"] = int(dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp())
+                            notices.append(notice)
+                            break
 
     # レイドの解放期間を取得
     raid_notice = {}
