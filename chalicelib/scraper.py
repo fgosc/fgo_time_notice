@@ -383,7 +383,13 @@ def parse_event(url, expired_data=False):
         for i, tar in enumerate(target.select('tr td')):
             if i % 2 == 0:
                 notice = {}
-                notice["name"] = name + " " + tar.get_text(strip=True) + " 解放日時"
+                # クエスト名の改行を replace 処理で
+                tar_text = tar.get_text(strip=True)
+                if not tar_text.startswith("フリークエスト"):
+                    tar_text = tar_text.replace("フリークエスト", "・フリークエスト")
+                if not tar_text.startswith("閑話"):
+                    tar_text = tar_text.replace("閑話", "・閑話")
+                notice["name"] = name + " " + tar_text + " 解放"
                 notice["url"] = url
             else:
                 m1 = re.search(pattern, tar.get_text(strip=True))
