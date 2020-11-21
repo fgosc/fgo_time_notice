@@ -30,21 +30,26 @@ def make_data_from_api(web_notices, dtime=datetime.datetime.now()):
             name = name.replace("\u3000", "")
             if event["type"] == "eventQuest":
                 name += " イベント開催期間"
-            if event["type"] == "questCampaign" \
-               and "キャンペーン" not in name and "ｷｬﾝﾍﾟｰﾝ" not in name:
-                name = "【キャンペーン】" + name
-            notice["name"] = name
             # スクレイピングしたデータからurlを利用
             url = ""
+            campaigns = ["questCampaign", "combineCampaign", "svtequipCombineCampaign"]
             for data in web_notices:
-                if event["type"] == "questCampaign" \
+                if event["type"] in campaigns \
                    and "キャンペーン" in data["name"]:
+                    # 個々の項目の終了時間はキャンペーンの代表的終了時間と同じでは無い
+                    # キャンペーンはメンテナンス延長しないという前提
                     if event["startedAt"] == data["begin"]:
                         url = data["url"]
+                        if "キャンペーン" not in name and "ｷｬﾝﾍﾟｰﾝ" not in name:
+                            name = "【キャンペーン】" + name
+                        break
                 else:
-                    if event["startedAt"] == data["begin"] \
-                       and event["endedAt"] == data["end"]:
+                    # イベントのスタート時間はメンテナンスで変わるため使えない
+                    # ゲームデータでは初期のままだが、Webでは延長後になる
+                    if event["endedAt"] == data["end"]:
                         url = data["url"]
+                        break
+            notice["name"] = name
             if url != "":
                 notice["url"] = url
 #            notice["url"] = url
