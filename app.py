@@ -12,7 +12,7 @@ s3resource = boto3.resource('s3')
 s3bucket = s3resource.Bucket(settings.BUCKET_NAME)
 
 
-def run():
+def _run():
     notices = make_notices()
     data = json.dumps(notices, ensure_ascii=False)
     bio = io.BytesIO(data.encode('utf-8'))
