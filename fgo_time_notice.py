@@ -45,10 +45,10 @@ def update_data():
     定期更新実装のため関数化
     新しいレイアウトを作成する必要がある場合は、探しているレイアウトで新しいウィンドウを作成し、もう一方のウィンドウを閉じます。
     """
-    # r_get = requests.get(json_url)
-    # notices = r_get.json()
+    r_get = requests.get(json_url)
+    notices = r_get.json()
     # # dataを自身で作成 起動速度は遅い
-    notices = make_notices()
+    # notices = make_notices()
     return notices
 
 
