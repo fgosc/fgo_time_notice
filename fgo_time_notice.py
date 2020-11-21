@@ -170,7 +170,7 @@ def make_window(location=None):
             if event["begin"] > current_time:
                 # 開始時間がすぎていたら表示しない
                 event_time.append([event["name"] + " 開始", event["begin"], event["url"]])
-        if event["end"] is not None and "解放日時" not in event["name"]:
+        if event["end"] is not None and "解放" not in event["name"]:
             event_time.append([event["name"] + " 終了", event["end"], event["url"]])
         if "begin_alias" in event.keys():
             if event["begin_alias"] is not None:
