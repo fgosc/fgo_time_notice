@@ -14,7 +14,7 @@ import PySimpleGUI as sg
 import requests
 from bs4 import BeautifulSoup
 
-from chalicelib.scraper import get_pages
+from chalicelib.scraper import make_notices
 
 firstfg = True
 filename = './top_banner.png'
@@ -48,9 +48,7 @@ def update_data():
     r_get = requests.get(json_url)
     notices = r_get.json()
     # # dataを自身で作成 起動速度は遅い
-    # notices_n = get_pages(news_url)
-    # notices_m = get_pages(maintenance_url)
-    # notices = notices_n + notices_m
+    # notices = make_notices()
     return notices
 
 

@@ -4,18 +4,15 @@ import argparse
 import json
 import logging
 
-from chalicelib.scraper import get_pages
+from chalicelib.scraper import make_notices
 
 logger = logging.getLogger(__name__)
 
 
 def main():
     # Webページを取得して解析する
-    news_url = "https://news.fate-go.jp"
-    maintenance_url = "https://news.fate-go.jp/maintenance"
-    notices_n = get_pages(news_url)
-    notices_m = get_pages(maintenance_url)
-    data = json.dumps(notices_n + notices_m, ensure_ascii=False)
+    notices = make_notices()
+    data = json.dumps(notices, ensure_ascii=False)
     print(data)
 
 
