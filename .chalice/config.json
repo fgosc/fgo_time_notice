@@ -4,16 +4,10 @@
   "stages": {
     "dev": {
       "api_gateway_stage": "api",
-      "lambda_functions": {
-        "run": {
-          "environment_variables": {
-            "TZ": "Asia/Tokyo"
-          },
-          "rebuild_outputs": {
-            "lambda_timeout": 120
-          }
-        }
-      }
+      "environment_variables": {
+        "TZ": "Asia/Tokyo"
+      },
+      "lambda_timeout": 120
     }
   }
 }
