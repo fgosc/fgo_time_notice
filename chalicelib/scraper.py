@@ -43,7 +43,7 @@ def parse_maintenance(url, expired_data=False):
         name = "メンテナンス"
 
     notices = []
-    if not expired_data and "終了" in tag_item.get_text():
+    if "終了" in tag_item.get_text():
         return notices
     str_np = 'p:contains("「Fate/Grand Order」をプレイすることができません")'
     cant_play = soup.select_one(str_np)
@@ -71,6 +71,7 @@ def parse_maintenance(url, expired_data=False):
                                               "%Y/%m/%d %H:%M").timestamp()
                                   )
             notice["end"] = int(dt.strptime(end, "%Y/%m/%d %H:%M").timestamp())
+            notice["type"] = "maintenance"
             notices.append(notice)
             break
         # 日付をまたぐメンテナンス用(発生頻度: 超レア)
@@ -88,6 +89,7 @@ def parse_maintenance(url, expired_data=False):
                                               "%Y/%m/%d %H:%M"
                                               ).timestamp())
             notice["end"] = int(dt.strptime(end, "%Y/%m/%d %H:%M").timestamp())
+            notice["type"] = "maintenance"
             notices.append(notice)
             break
 
@@ -103,13 +105,14 @@ def parse_maintenance(url, expired_data=False):
                                               start,
                                               "%Y/%m/%d %H:%M").timestamp())
             notice["end"] = None
+            notice["type"] = "maintenance"
             notices.append(notice)
             break
 
     return notices
 
 
-def parse_distribution(url):
+def parse_broadcast(url):
     """
     カルデア放送局の配信のお知らせを扱う
     開始時間しかないので放送が始まったら出力しない
@@ -145,26 +148,24 @@ def parse_distribution(url):
             stime = re.sub(pattern2, r"\g<s_hour>:\g<s_min>", m2.group())
             day_time = dt.strptime(sday + " " + stime, "%Y/%m/%d %H:%M")
             day_time_f = int(day_time.timestamp())
-            cond = time.time() - day_time_f < 0
-            if cond:
-                notice = {}
-                notice["name"] = name
-                notice["url"] = url
-                str_b = dt.strptime(sday + " " + stime, "%Y/%m/%d %H:%M")
-                notice["begin"] = int(str_b.timestamp())
-                notice["end"] = None
-                notices.append(notice)
-            break
-
-
-#    logger.debug("descs: %s", descs)
-    # for desc in descs:
-    #     notice = {}
-    #     notice["name"] = name + " イベント開催予定"
-    #     notice["url"] = url
-    #     notice["begin"] = None
-    #     notice["end"] = None
-    #     notices.append(notice)
+            # cond = time.time() - day_time_f < 0
+            # if cond:
+            #     notice = {}
+            #     notice["name"] = name
+            #     notice["url"] = url
+            #     str_b = dt.strptime(sday + " " + stime, "%Y/%m/%d %H:%M")
+            #     notice["begin"] = int(str_b.timestamp())
+            #     notice["end"] = None
+            #     notice["type"] = "broadcast"
+            #     notices.append(notice)
+            notice = {}
+            notice["name"] = name
+            notice["url"] = url
+            str_b = dt.strptime(sday + " " + stime, "%Y/%m/%d %H:%M")
+            notice["begin"] = int(str_b.timestamp())
+            notice["end"] = None
+            notice["type"] = "broadcast"
+            notices.append(notice)
 
     return notices
 
@@ -198,6 +199,7 @@ def parse_preview(url):
         notice["begin"] = None
         notice["end"] = None
         notice["begin_alias"] = desc.get_text(strip=True)
+        notice["type"] = "eventQuest"
         notices.append(notice)
 
     return notices
@@ -206,7 +208,6 @@ def parse_preview(url):
 def parse_campaign(url, expired_data=False):
     """
     キャンペーンのお知らせを扱う
-    キャンペーン内では様々な期限のものがあるが需要が高いフレンドポイント2倍キャンペーンのみ個別抽出する
     """
 
     html = requests.get(url)
@@ -251,19 +252,27 @@ def parse_campaign(url, expired_data=False):
                 logger.debug(start)
                 logger.debug(end)
                 logger.debug(kikan.get_text(strip=True))
-                if expired_data:
-                    cond = 1
-                else:
-                    end_t = dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp()
-                    cond = time.time() - end_t < 0
-                if cond:
-                    notice["name"] = name + " " + kikan.get_text(strip=True)
-                    notice["url"] = url
-                    begin_t = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
-                    notice["begin"] = int(begin_t.timestamp())
-                    end_t = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
-                    notice["end"] = int(end_t.timestamp())
-                    notices.append(notice)
+                # if expired_data:
+                #     cond = 1
+                # else:
+                #     end_t = dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp()
+                #     cond = time.time() - end_t < 0
+                # if cond:
+                #     notice["name"] = name + " " + kikan.get_text(strip=True)
+                #     notice["url"] = url
+                #     begin_t = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
+                #     notice["begin"] = int(begin_t.timestamp())
+                #     end_t = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
+                #     notice["end"] = int(end_t.timestamp())
+                #     notices.append(notice)
+                notice["name"] = name + " " + kikan.get_text(strip=True)
+                notice["url"] = url
+                begin_t = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
+                notice["begin"] = int(begin_t.timestamp())
+                end_t = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
+                notice["end"] = int(end_t.timestamp())
+                notice["type"] = "campaign"
+                notices.append(notice)
         if flag:
             break
 
@@ -287,21 +296,29 @@ def parse_campaign(url, expired_data=False):
                 logger.debug(start)
                 logger.debug(end)
                 logger.debug(kikan.get_text(strip=True))
-                if expired_data:
-                    cond = 1
-                else:
-                    cond = time.time() - dt.strptime(
-                                                     end,
-                                                     "%Y/%m/%d %H:%M:%S"
-                                                     ).timestamp() < 0
-                if cond:
-                    notice["name"] = name + " " + kikan.get_text(strip=True)
-                    notice["url"] = url
-                    begin_s = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
-                    notice["begin"] = int(begin_s.timestamp())
-                    end_s = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
-                    notice["end"] = int(end_s.timestamp())
-                    notices.append(notice)
+                # if expired_data:
+                #     cond = 1
+                # else:
+                #     cond = time.time() - dt.strptime(
+                #                                      end,
+                #                                      "%Y/%m/%d %H:%M:%S"
+                #                                      ).timestamp() < 0
+                # if cond:
+                #     notice["name"] = name + " " + kikan.get_text(strip=True)
+                #     notice["url"] = url
+                #     begin_s = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
+                #     notice["begin"] = int(begin_s.timestamp())
+                #     end_s = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
+                #     notice["end"] = int(end_s.timestamp())
+                #     notices.append(notice)
+                notice["name"] = name + " " + kikan.get_text(strip=True)
+                notice["url"] = url
+                begin_s = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
+                notice["begin"] = int(begin_s.timestamp())
+                end_s = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
+                notice["end"] = int(end_s.timestamp())
+                notice["type"] = "campaign"
+                notices.append(notice)
         if flag:
             break
 
@@ -352,29 +369,43 @@ def parse_event(url, expired_data=False):
                 logger.debug(start)
                 logger.debug(end)
                 logger.debug(kikan.get_text(strip=True))
-                if expired_data:
-                    cond = 1
-                else:
-                    if kikan.get_text(strip=True) == "イベント開催期間":
-                        s_time = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
-                        if time.time() - s_time.timestamp() > 0:
-                            continue
-                    e_time = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
-                    cond = time.time() - e_time.timestamp() < 0
-                if cond:
-                    notice["name"] = name + " " + kikan.get_text(strip=True)
-                    notice["url"] = url
-                    begin_dt = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
-                    notice["begin"] = int(begin_dt.timestamp())
-                    end_dt = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
-                    notice["end"] = int(end_dt.timestamp())
-                    for n in notices:
-                        if n["name"] == notice["name"] \
-                           and n["end"] == notice["end"]:
-                            duplicate = True
-                            break
-                    if not duplicate:
-                        notices.append(notice)
+                # if expired_data:
+                #     cond = 1
+                # else:
+                #     if kikan.get_text(strip=True) == "イベント開催期間":
+                #         s_time = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
+                #         if time.time() - s_time.timestamp() > 0:
+                #             continue
+                #     e_time = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
+                #     cond = time.time() - e_time.timestamp() < 0
+                # if cond:
+                #     notice["name"] = name + " " + kikan.get_text(strip=True)
+                #     notice["url"] = url
+                #     begin_dt = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
+                #     notice["begin"] = int(begin_dt.timestamp())
+                #     end_dt = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
+                #     notice["end"] = int(end_dt.timestamp())
+                #     for n in notices:
+                #         if n["name"] == notice["name"] \
+                #            and n["end"] == notice["end"]:
+                #             duplicate = True
+                #             break
+                #     if not duplicate:
+                #         notices.append(notice)
+                notice["name"] = name + " " + kikan.get_text(strip=True)
+                notice["url"] = url
+                begin_dt = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
+                notice["begin"] = int(begin_dt.timestamp())
+                end_dt = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
+                notice["end"] = int(end_dt.timestamp())
+                notice["type"] = "eventQuest"
+                for n in notices:
+                    if n["name"] == notice["name"] \
+                        and n["end"] == notice["end"]:
+                        duplicate = True
+                        break
+                if not duplicate:
+                    notices.append(notice)
 
     # クエストの解放期間を取得
     # 解放期間が直近のクエスト一つを出すよう変更
@@ -400,21 +431,31 @@ def parse_event(url, expired_data=False):
                     start = re.sub(pattern, start_p, m1.group())
                     end_p = r"\g<s_year>/\g<e_month>/\g<e_day> \g<e_hour>:\g<e_min>:59"
                     end = re.sub(pattern, end_p, m1.group())
-                    if expired_data:
-                        cond = 1
-                    else:
-                        end_t = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
-                        cond = time.time() - end_t.timestamp() < 0
-                    if cond:
-                        start_t = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
-                        cond2 = time.time() - start_t.timestamp() < 0
-                        if cond2:
-                            begin_s = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
-                            notice["begin"] = int(begin_s.timestamp())
-                            end_s = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
-                            notice["end"] = int(end_s.timestamp())
-                            notices.append(notice)
-                            break
+                    # if expired_data:
+                    #     cond = 1
+                    # else:
+                    #     end_t = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
+                    #     cond = time.time() - end_t.timestamp() < 0
+                    # if cond:
+                    #     start_t = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
+                    #     cond2 = time.time() - start_t.timestamp() < 0
+                    #     if cond2:
+                    #         begin_s = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
+                    #         notice["begin"] = int(begin_s.timestamp())
+                    #         end_s = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
+                    #         notice["end"] = int(end_s.timestamp())
+                    #         notices.append(notice)
+                    #         break
+                    start_t = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
+                    cond2 = time.time() - start_t.timestamp() < 0
+                    if cond2:
+                        begin_s = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
+                        notice["begin"] = int(begin_s.timestamp())
+                        end_s = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
+                        notice["end"] = int(end_s.timestamp())
+                        notice["type"] = "eventQuest"
+                        notices.append(notice)
+                        break
 
     # レイドの解放期間を取得
     raid_notice = {}
@@ -432,6 +473,8 @@ def parse_event(url, expired_data=False):
             begin_s = dt.strptime(raid_start, "%Y/%m/%d %H:%M:%S")
             raid_notice["begin"] = int(begin_s.timestamp())
             raid_notice["end"] = None
+            raid_notice["type"] = "eventQuest"
+
             notices.append(raid_notice)
     return notices
 
@@ -459,7 +502,7 @@ def parse_page(load_url, expired_data=False):
         if "発表" in page_title:
             return {}
         else:
-            notices = parse_distribution(load_url)
+            notices = parse_broadcast(load_url)
     elif "メンテナンス" in page_title:
         notices = parse_maintenance(load_url)
     else:
@@ -487,15 +530,40 @@ def get_pages(url, expired_data=False):
     return notices
 
 
+def expired_notice(notices):
+    new_notices = []
+    for notice in notices:
+        # 終了時間が過ぎた項目はカット
+        if notice["end"] is not None:
+            if notice["end"] < int(time.time()):
+                continue
+        if notice["type"] == "broadcast" \
+           and notice["begin"] < int(time.time()):
+            continue
+        if notice["type"] == "eventQuest" \
+           and "イベント開催期間" in notice["name"] \
+           or "解放" in notice["name"] \
+           and notice["begin"] < int(time.time()):
+           # APIからのデータと重複するため
+            continue
+        if notice["type"] == "campaign" \
+           and notice["begin"] < int(time.time()):
+           # APIからのデータと重複するため
+            continue
+        new_notices.append(notice)
+    return new_notices
+
+
 def make_notices():
     # Webページを取得して解析する
     news_url = "https://news.fate-go.jp"
     maintenance_url = "https://news.fate-go.jp/maintenance"
     notices_n = get_pages(news_url)
     notices_m = get_pages(maintenance_url)
-    notices_e = get_pages(news_url, expired_data=True)
-    notices_u = make_data_from_api(notices_e)
-    return notices_n + notices_m + notices_u
+#    notices_e = get_pages(news_url, expired_data=True)
+    notices_a = make_data_from_api(notices_n)
+    notices_e = expired_notice(notices_n + notices_m)
+    return notices_e + notices_a
 
 
 def main():

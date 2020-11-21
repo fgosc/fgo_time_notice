@@ -28,6 +28,11 @@ def make_data_from_api(web_notices, dtime=datetime.datetime.now()):
             notice["id"] = event["id"]
             name = event["name"].replace("\n", "")
             name = name.replace("\u3000", "")
+            if event["type"] == "eventQuest":
+                name += " イベント開催期間"
+            if event["type"] == "questCampaign" \
+               and "キャンペーン" not in name and "ｷｬﾝﾍﾟｰﾝ" not in name:
+                name = "【キャンペーン】" + name
             notice["name"] = name
             # スクレイピングしたデータからurlを利用
             url = ""
@@ -45,6 +50,7 @@ def make_data_from_api(web_notices, dtime=datetime.datetime.now()):
 #            notice["url"] = url
             notice["begin"] = event["startedAt"]
             notice["end"] = event["endedAt"]
+            notice["type"] = event["type"]
             notices.append(notice)
     return notices
 
