@@ -12,9 +12,6 @@ s3resource = boto3.resource('s3')
 s3bucket = s3resource.Bucket(settings.BUCKET_NAME)
 
 
-# 設定は UTC 時刻基準 (AWS の仕様)
-# 1800-2200 の間で毎時10分、40分
-@app.schedule(Cron('10,40', '9-13', '*', '*', '?', '*'))
 def run():
     notices = make_notices()
     data = json.dumps(notices, ensure_ascii=False)
