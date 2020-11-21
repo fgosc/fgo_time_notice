@@ -3,14 +3,13 @@ import argparse
 import logging
 import re
 from datetime import datetime as dt
-import dataclasses
 import json
-import unicodedata
-from typing import List
 import time
 
 import requests
 from bs4 import BeautifulSoup
+
+from chalicelib.api_data import make_data_from_api
 
 ID_GEM_MIN = 6001
 ID_HOLYGRAIL = 7999
@@ -23,8 +22,8 @@ pattern1 = r"(?P<s_year>20[12][0-9])年(?P<s_month>[0-9]{1,2})月(?P<s_day>[0-9]
 pattern2 = r"(?P<s_hour>([0-9]|[01][0-9]|2[0-3])):(?P<s_min>[0-5][0-9])"
 pattern3 = r"(?P<e_month>[0-9]{1,2})月(?P<e_day>[0-9]{1,2})日\([日月火水木金土]\)"
 pattern4 = r"(?P<e_hour>([0-9]|[01][0-9]|2[0-3])):(?P<e_min>[0-5][0-9])"
-pattern = pattern1 + " " + pattern2 + "～" +  pattern3 + " " + pattern4
-pattern_sameday = pattern1 + " " + pattern2 + "～" +  pattern4
+pattern = pattern1 + " " + pattern2 + "～" + pattern3 + " " + pattern4
+pattern_sameday = pattern1 + " " + pattern2 + "～" + pattern4
 pattern_undefine = pattern1 + " " + pattern2 + "～" + "未定"
 
 
@@ -32,7 +31,7 @@ def parse_maintenance(url, expired_data=False):
     """
     メンテナンスを扱う
     """
-    
+
     html = requests.get(url)
     soup = BeautifulSoup(html.content, "html.parser")
     tag_item = soup.select_one('div.title')
@@ -46,7 +45,8 @@ def parse_maintenance(url, expired_data=False):
     notices = []
     if not expired_data and "終了" in tag_item.get_text():
         return notices
-    cant_play = soup.select_one('p:contains("「Fate/Grand Order」をプレイすることができません")')
+    str_np = 'p:contains("「Fate/Grand Order」をプレイすることができません")'
+    cant_play = soup.select_one(str_np)
     if cant_play is None:
         return notices
 
@@ -58,24 +58,35 @@ def parse_maintenance(url, expired_data=False):
         # 通常の13-18時メンテナンス用
         m1 = re.search(pattern_sameday, str(kikan))
         if m1:
-            start = re.sub(pattern_sameday, r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>", m1.group())
-            end = re.sub(pattern_sameday, r"\g<s_year>/\g<s_month>/\g<s_day> \g<e_hour>:\g<e_min>", m1.group())
+            str_s = r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>"
+            start = re.sub(pattern_sameday, str_s, m1.group())
+            str_e = r"\g<s_year>/\g<s_month>/\g<s_day> \g<e_hour>:\g<e_min>"
+            end = re.sub(pattern_sameday, str_e, m1.group())
             notice = {}
             notice["name"] = name
             notice["url"] = url
-            notice["begin"] = int(dt.strptime(start, "%Y/%m/%d %H:%M").timestamp())
+            notice["begin"] = int(
+                                  dt.strptime(
+                                              start,
+                                              "%Y/%m/%d %H:%M").timestamp()
+                                  )
             notice["end"] = int(dt.strptime(end, "%Y/%m/%d %H:%M").timestamp())
             notices.append(notice)
             break
         # 日付をまたぐメンテナンス用(発生頻度: 超レア)
         m2 = re.search(pattern, str(kikan))
         if m2:
-            start = re.sub(pattern, r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>", m2.group())
-            end = re.sub(pattern, r"\g<s_year>/\g<s_month>/\g<e_day> \g<e_hour>:\g<e_min>", m2.group())
+            str_s2 = r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>"
+            start = re.sub(pattern, str_s2, m2.group())
+            str_e2 = r"\g<s_year>/\g<s_month>/\g<e_day> \g<e_hour>:\g<e_min>"
+            end = re.sub(pattern, str_e2, m2.group())
             notice = {}
             notice["name"] = name
             notice["url"] = url
-            notice["begin"] = int(dt.strptime(start, "%Y/%m/%d %H:%M").timestamp())
+            notice["begin"] = int(dt.strptime(
+                                              start,
+                                              "%Y/%m/%d %H:%M"
+                                              ).timestamp())
             notice["end"] = int(dt.strptime(end, "%Y/%m/%d %H:%M").timestamp())
             notices.append(notice)
             break
@@ -83,11 +94,14 @@ def parse_maintenance(url, expired_data=False):
         # 緊急メンテナンス
         m3 = re.search(pattern_undefine, str(kikan))
         if m3:
-            start = re.sub(pattern_undefine, r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>", m3.group())
+            str_s3 = r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>"
+            start = re.sub(pattern_undefine, str_s3, m3.group())
             notice = {}
             notice["name"] = name
             notice["url"] = url
-            notice["begin"] = int(dt.strptime(start, "%Y/%m/%d %H:%M").timestamp())
+            notice["begin"] = int(dt.strptime(
+                                              start,
+                                              "%Y/%m/%d %H:%M").timestamp())
             notice["end"] = None
             notices.append(notice)
             break
@@ -100,7 +114,7 @@ def parse_distribution(url):
     カルデア放送局の配信のお知らせを扱う
     開始時間しかないので放送が始まったら出力しない
     """
-    
+
     html = requests.get(url)
     soup = BeautifulSoup(html.content, "html.parser")
     tag_item = soup.select_one('div.title')
@@ -124,20 +138,24 @@ def parse_distribution(url):
             continue
         m1 = re.search(pattern1, str(kikan))
         if m1:
-            start_day = re.sub(pattern1, r"\g<s_year>/\g<s_month>/\g<s_day>", m1.group())
+            str_sd = r"\g<s_year>/\g<s_month>/\g<s_day>"
+            sday = re.sub(pattern1, str_sd, m1.group())
         m2 = re.search(pattern2, str(kikan))
         if m2:
-            start_time = re.sub(pattern2, r"\g<s_hour>:\g<s_min>", m2.group())
-            cond = time.time() - int(dt.strptime(start_day + " " + start_time, "%Y/%m/%d %H:%M").timestamp()) < 0
+            stime = re.sub(pattern2, r"\g<s_hour>:\g<s_min>", m2.group())
+            day_time = dt.strptime(sday + " " + stime, "%Y/%m/%d %H:%M")
+            day_time_f = int(day_time.timestamp())
+            cond = time.time() - day_time_f < 0
             if cond:
                 notice = {}
                 notice["name"] = name
                 notice["url"] = url
-                notice["begin"] = int(dt.strptime(start_day + " " + start_time, "%Y/%m/%d %H:%M").timestamp())
+                str_b = dt.strptime(sday + " " + stime, "%Y/%m/%d %H:%M")
+                notice["begin"] = int(str_b.timestamp())
                 notice["end"] = None
                 notices.append(notice)
             break
-                    
+
 
 #    logger.debug("descs: %s", descs)
     # for desc in descs:
@@ -150,12 +168,13 @@ def parse_distribution(url):
 
     return notices
 
+
 def parse_preview(url):
     """
     予告のお知らせを扱う
     予告なので終了時間は無し
     """
-    
+
     html = requests.get(url)
     soup = BeautifulSoup(html.content, "html.parser")
     tag_item = soup.select_one('div.title')
@@ -178,7 +197,7 @@ def parse_preview(url):
         notice["url"] = url
         notice["begin"] = None
         notice["end"] = None
-        notice["begin_alias"] =  desc.get_text(strip=True)    
+        notice["begin_alias"] = desc.get_text(strip=True)
         notices.append(notice)
 
     return notices
@@ -189,7 +208,7 @@ def parse_campaign(url, expired_data=False):
     キャンペーンのお知らせを扱う
     キャンペーン内では様々な期限のものがあるが需要が高いフレンドポイント2倍キャンペーンのみ個別抽出する
     """
-    
+
     html = requests.get(url)
     soup = BeautifulSoup(html.content, "html.parser")
     tag_item = soup.select_one('div.title')
@@ -209,21 +228,23 @@ def parse_campaign(url, expired_data=False):
 #    logger.debug("descs: %s", descs)
     # 公式のキャンペーン期限を抽出
     for desc in descs:
-        flag = False #重複チェック
+        flag = False  # 重複チェック
         notice = {}
 #        if re.search(pattern1 + pattern2 + pattern3 + pattern4, str(desc)):
         m1 = re.search(pattern, desc.get_text(strip=True))
         if m1:
             flag = True
-            start = re.sub(pattern, r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>:00", m1.group())
-            end = re.sub(pattern, r"\g<s_year>/\g<e_month>/\g<e_day> \g<e_hour>:\g<e_min>:59", m1.group())
+            str_s = r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>:00"
+            start = re.sub(pattern, str_s, m1.group())
+            str_e = r"\g<s_year>/\g<e_month>/\g<e_day> \g<e_hour>:\g<e_min>:59"
+            end = re.sub(pattern, str_e, m1.group())
             # 空白にならないところまで親要素をたどる
             # お得な攻略方法獲得経験値2倍が「開催期間」としてでてくるのが冗長
             for kikan in desc.previous_siblings:
                 if kikan == "\n":
                     # NavigableStringオブジェクトを操作したときのAttributeErrorを回避
                     continue
-                elif kikan.get_text(strip=True) in ["", "◆","受け取り期間"]:
+                elif kikan.get_text(strip=True) in ["", "◆", "受け取り期間"]:
                     # 受け取り期間はスキップする手抜き実装
                     continue
                 logger.debug(name)
@@ -233,12 +254,15 @@ def parse_campaign(url, expired_data=False):
                 if expired_data:
                     cond = 1
                 else:
-                    cond = time.time() - dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp() < 0
+                    end_t = dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp()
+                    cond = time.time() - end_t < 0
                 if cond:
                     notice["name"] = name + " " + kikan.get_text(strip=True)
                     notice["url"] = url
-                    notice["begin"] = int(dt.strptime(start, "%Y/%m/%d %H:%M:%S").timestamp())
-                    notice["end"] = int(dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp())
+                    begin_t = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
+                    notice["begin"] = int(begin_t.timestamp())
+                    end_t = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
+                    notice["end"] = int(end_t.timestamp())
                     notices.append(notice)
         if flag:
             break
@@ -246,15 +270,17 @@ def parse_campaign(url, expired_data=False):
         m2 = re.search(pattern_sameday, desc.get_text(strip=True))
         if m2:
             flag = True
-            start = re.sub(pattern_sameday, r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>:00", m2.group())
-            end = re.sub(pattern_sameday, r"\g<s_year>/\g<s_month>/\g<s_day> \g<e_hour>:\g<e_min>:59", m2.group())
+            start_s = r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>:00"
+            start = re.sub(pattern_sameday, start_s, m2.group())
+            end_s = r"\g<s_year>/\g<s_month>/\g<s_day> \g<e_hour>:\g<e_min>:59"
+            end = re.sub(pattern_sameday, end_s, m2.group())
             # 空白にならないところまで親要素をたどる
             # お得な攻略方法獲得経験値2倍が「開催期間」としてでてくるのが冗長
             for kikan in desc.previous_siblings:
                 if kikan == "\n":
                     # NavigableStringオブジェクトを操作したときのAttributeErrorを回避
                     continue
-                elif kikan.get_text(strip=True) in ["", "◆","受け取り期間"]:
+                elif kikan.get_text(strip=True) in ["", "◆", "受け取り期間"]:
                     # 受け取り期間はスキップする手抜き実装
                     continue
                 logger.debug(name)
@@ -264,51 +290,21 @@ def parse_campaign(url, expired_data=False):
                 if expired_data:
                     cond = 1
                 else:
-                    cond = time.time() - dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp() < 0
+                    cond = time.time() - dt.strptime(
+                                                     end,
+                                                     "%Y/%m/%d %H:%M:%S"
+                                                     ).timestamp() < 0
                 if cond:
                     notice["name"] = name + " " + kikan.get_text(strip=True)
                     notice["url"] = url
-                    notice["begin"] = int(dt.strptime(start, "%Y/%m/%d %H:%M:%S").timestamp())
-                    notice["end"] = int(dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp())
+                    begin_s = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
+                    notice["begin"] = int(begin_s.timestamp())
+                    end_s = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
+                    notice["end"] = int(end_s.timestamp())
                     notices.append(notice)
         if flag:
             break
-            # logger.info("previous_sibling: %s", desc.previous_sibling.previous_sibling.previous_sibling.previous_sibling)
 
-    # FPCP期限を抽出
-    fpcp_notice = {}
-    target = soup.select_one('span:contains("をサポートに選択した場合、フレンドポイントの獲得量が2倍になります。")')
-    if target is not None:
-        for kikan in target.next_elements:
-            if kikan == "\n":
-                continue
-            m1 = re.search(pattern, str(kikan))
-            if m1:
-                start = re.sub(pattern, r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>:00", m1.group())
-                end = re.sub(pattern, r"\g<s_year>/\g<e_month>/\g<e_day> \g<e_hour>:\g<e_min>:59", m1.group())
-                fpcp_notice["name"] = "フレンドポイント獲得量2倍キャンペーン(FPCP)"
-                fpcp_notice["url"] = url
-                fpcp_notice["begin"] = int(dt.strptime(start, "%Y/%m/%d %H:%M:%S").timestamp())
-                fpcp_notice["end"] = int(dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp())
-                notices.append(fpcp_notice)
-
-    # 大成功・極大成功n倍を抽出
-    success_notice = {}
-    target0 = soup.select_one('div:contains("下記の期間中、サーヴァントおよび概念礼装の強化をおこなった際に、大成功(経験値2倍ボーナス)･極大成功(経験値3倍ボーナス)の発生率が期間限定で")')
-    target = soup.select_one('div:contains("下記の期間中、サーヴァントおよび概念礼装の強化をおこなった際に、大成功(経験値2倍ボーナス)･極大成功(経験値3倍ボーナス)の発生率が期間限定で") ~ p')
-    if target is not None:
-        for kikan in target.stripped_strings:
-            if kikan == "\n":
-                continue
-            m1 = re.search(pattern, str(kikan))
-            if m1:
-                start = re.sub(pattern, r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>:00", m1.group())
-                end = re.sub(pattern, r"\g<s_year>/\g<e_month>/\g<e_day> \g<e_hour>:\g<e_min>:59", m1.group())
-                success_notice["name"] = "大成功･極大成功発生率n倍キャンペーン"
-                success_notice["url"] = url
-                success_notice["begin"] = int(dt.strptime(start, "%Y/%m/%d %H:%M:%S").timestamp())
-                success_notice["end"] = int(dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp())
-                notices.append(success_notice)
     return notices
 
 
@@ -316,7 +312,6 @@ def parse_event(url, expired_data=False):
     """
     時間関係の部分を抽出
     """
-    
     html = requests.get(url)
     soup = BeautifulSoup(html.content, "html.parser")
     tag_item = soup.select_one('div.title')
@@ -360,19 +355,26 @@ def parse_event(url, expired_data=False):
                 if expired_data:
                     cond = 1
                 else:
-                    cond = time.time() - dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp() < 0
+                    if kikan.get_text(strip=True) == "イベント開催期間":
+                        s_time = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
+                        if time.time() - s_time.timestamp() > 0:
+                            continue
+                    e_time = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
+                    cond = time.time() - e_time.timestamp() < 0
                 if cond:
                     notice["name"] = name + " " + kikan.get_text(strip=True)
                     notice["url"] = url
-                    notice["begin"] = int(dt.strptime(start, "%Y/%m/%d %H:%M:%S").timestamp())
-                    notice["end"] = int(dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp())
+                    begin_dt = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
+                    notice["begin"] = int(begin_dt.timestamp())
+                    end_dt = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
+                    notice["end"] = int(end_dt.timestamp())
                     for n in notices:
-                        if n["name"] == notice["name"] and n["end"] == notice["end"]:
+                        if n["name"] == notice["name"] \
+                           and n["end"] == notice["end"]:
                             duplicate = True
                             break
                     if not duplicate:
                         notices.append(notice)
-            # logger.info("previous_sibling: %s", desc.previous_sibling.previous_sibling.previous_sibling.previous_sibling)
 
     # クエストの解放期間を取得
     # 解放期間が直近のクエスト一つを出すよう変更
@@ -394,17 +396,23 @@ def parse_event(url, expired_data=False):
             else:
                 m1 = re.search(pattern, tar.get_text(strip=True))
                 if m1:
-                    start = re.sub(pattern, r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>:00", m1.group())
-                    end = re.sub(pattern, r"\g<s_year>/\g<e_month>/\g<e_day> \g<e_hour>:\g<e_min>:59", m1.group())
+                    start_p = r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>:00"
+                    start = re.sub(pattern, start_p, m1.group())
+                    end_p = r"\g<s_year>/\g<e_month>/\g<e_day> \g<e_hour>:\g<e_min>:59"
+                    end = re.sub(pattern, end_p, m1.group())
                     if expired_data:
                         cond = 1
                     else:
-                        cond = time.time() - dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp() < 0
+                        end_t = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
+                        cond = time.time() - end_t.timestamp() < 0
                     if cond:
-                        cond2 = time.time() - dt.strptime(start, "%Y/%m/%d %H:%M:%S").timestamp() < 0
+                        start_t = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
+                        cond2 = time.time() - start_t.timestamp() < 0
                         if cond2:
-                            notice["begin"] = int(dt.strptime(start, "%Y/%m/%d %H:%M:%S").timestamp())
-                            notice["end"] = int(dt.strptime(end, "%Y/%m/%d %H:%M:%S").timestamp())
+                            begin_s = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
+                            notice["begin"] = int(begin_s.timestamp())
+                            end_s = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
+                            notice["end"] = int(end_s.timestamp())
                             notices.append(notice)
                             break
 
@@ -416,10 +424,13 @@ def parse_event(url, expired_data=False):
     if target is not None:
         m2 = re.search(pattern0 + pattern2, target.get_text(strip=True))
         if m2:
-            raid_start = re.sub(pattern0 + pattern2, year + r"/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>:00", m2.group())
+            rs_str = r"/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>:00"
+            rs_ptn = year + rs_str
+            raid_start = re.sub(pattern0 + pattern2, rs_ptn, m2.group())
             raid_notice["name"] = name + " レイド解放日時"
             raid_notice["url"] = url
-            raid_notice["begin"] = int(dt.strptime(raid_start, "%Y/%m/%d %H:%M:%S").timestamp())
+            begin_s = dt.strptime(raid_start, "%Y/%m/%d %H:%M:%S")
+            raid_notice["begin"] = int(begin_s.timestamp())
             raid_notice["end"] = None
             notices.append(raid_notice)
     return notices
@@ -434,21 +445,22 @@ def parse_page(load_url, expired_data=False):
                     "  |  Fate/Grand Order 公式サイト", ""
                     )
     for word in ["TIPS"
-                 "重要", "交換可能なアイテムについて",
+                 "重要",
+                 "交換可能なアイテムについて",
                  "召喚"
-                ]:
+                 ]:
         if word in page_title:
             return None
     if "キャンペーン" in page_title or "Anniversary" in page_title:
         notices = parse_campaign(load_url, expired_data)
-    elif "予告" in  page_title:
+    elif "予告" in page_title:
         notices = parse_preview(load_url)
-    elif "配信" in  page_title:
-        if "発表" in  page_title:
+    elif "配信" in page_title:
+        if "発表" in page_title:
             return {}
         else:
             notices = parse_distribution(load_url)
-    elif "メンテナンス" in  page_title:
+    elif "メンテナンス" in page_title:
         notices = parse_maintenance(load_url)
     else:
         notices = parse_event(load_url, expired_data)
@@ -474,13 +486,21 @@ def get_pages(url, expired_data=False):
             notices += event_list
     return notices
 
-def main():
+
+def make_notices():
     # Webページを取得して解析する
     news_url = "https://news.fate-go.jp"
     maintenance_url = "https://news.fate-go.jp/maintenance"
     notices_n = get_pages(news_url)
     notices_m = get_pages(maintenance_url)
-    data = json.dumps(notices_n + notices_m, ensure_ascii=False)
+    notices_e = get_pages(news_url, expired_data=True)
+    notices_u = make_data_from_api(notices_e)
+    return notices_n + notices_m + notices_u
+
+
+def main():
+    notices = make_notices()
+    data = json.dumps(notices, ensure_ascii=False)
     print(data)
 
 
@@ -494,9 +514,10 @@ if __name__ == '__main__':
                         choices=('debug', 'info'), default='info')
 
     args = parser.parse_args()    # 引数を解析
+    str_f = '%(name)s <%(filename)s-L%(lineno)s> [%(levelname)s] %(message)s'
     logging.basicConfig(
         level=logging.INFO,
-        format='%(name)s <%(filename)s-L%(lineno)s> [%(levelname)s] %(message)s',
+        format=str_f,
     )
     logger.setLevel(args.loglevel.upper())
 
