@@ -40,8 +40,9 @@ def make_data_from_api(web_notices, dtime=datetime.datetime.now()):
                     # キャンペーンはメンテナンス延長しないという前提
                     if event["startedAt"] == data["begin"]:
                         url = data["url"]
-                        if "キャンペーン" not in name and "ｷｬﾝﾍﾟｰﾝ" not in name:
-                            name = "【キャンペーン】" + name
+                        name = data["title"] + " " + name
+                        # if "キャンペーン" not in name and "ｷｬﾝﾍﾟｰﾝ" not in name:
+                        #     name = "【キャンペーン】" + name
                         break
                 else:
                     # イベントのスタート時間はメンテナンスで変わるため使えない
