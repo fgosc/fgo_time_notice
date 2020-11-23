@@ -221,6 +221,7 @@ def parse_campaign(url, expired_data=False):
     else:
         logger.debug("not find title")
         name = tag_item.get_text()
+    name = name.replace("開催！", "")
     name = name.replace("開催", "")
     name = name.replace("【期間限定】", "")
     notices = []
@@ -271,6 +272,7 @@ def parse_campaign(url, expired_data=False):
                 notice["begin"] = int(begin_t.timestamp())
                 end_t = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
                 notice["end"] = int(end_t.timestamp())
+                notice["title"] = name
                 notice["type"] = "campaign"
                 notices.append(notice)
         if flag:
@@ -317,11 +319,80 @@ def parse_campaign(url, expired_data=False):
                 notice["begin"] = int(begin_s.timestamp())
                 end_s = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
                 notice["end"] = int(end_s.timestamp())
+                notice["title"] = name
                 notice["type"] = "campaign"
                 notices.append(notice)
         if flag:
             break
 
+    # 交換期間を取得
+    descs = soup.select('p span.em01')
+#    logger.debug("descs: %s", descs)
+    for desc in descs:
+        notice = {}
+#        if re.search(pattern1 + pattern2 + pattern3 + pattern4, str(desc)):
+        m3 = re.search(pattern, desc.get_text(strip=True))
+        if m3:
+            start = re.sub(pattern, r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>:00", m3.group())
+            end = re.sub(pattern, r"\g<s_year>/\g<e_month>/\g<e_day> \g<e_hour>:\g<e_min>:59", m3.group())
+            year = re.sub(pattern, r"\g<s_year>", m3.group())
+            # 空白にならないところまで親要素をたどる
+            # お得な攻略方法獲得経験値2倍が「開催期間」としてでてくるのが冗長
+            for kikan in desc.previous_siblings:
+                duplicate = False
+                if kikan == "\n":
+                    # NavigableStringオブジェクトを操作したときのAttributeErrorを回避
+                    continue
+                # elif kikan.get_text(strip=True) in ["", "◆", "開催期間", "受け取り期間"]:
+                elif "交換期間" not in kikan.get_text(strip=True):
+                    # 開催期間は配布鯖経験値2倍期間をスキップする手抜き実装
+                    # 受け取り期間はログインボーナスをスキップする手抜き実装
+                    continue
+                logger.debug(name)
+                logger.debug(start)
+                logger.debug(end)
+                logger.debug(kikan.get_text(strip=True))
+                # if expired_data:
+                #     cond = 1
+                # else:
+                #     if kikan.get_text(strip=True) == "イベント開催期間":
+                #         s_time = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
+                #         if time.time() - s_time.timestamp() > 0:
+                #             continue
+                #     e_time = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
+                #     cond = time.time() - e_time.timestamp() < 0
+                # if cond:
+                #     notice["name"] = name + " " + kikan.get_text(strip=True)
+                #     notice["url"] = url
+                #     begin_dt = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
+                #     notice["begin"] = int(begin_dt.timestamp())
+                #     end_dt = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
+                #     notice["end"] = int(end_dt.timestamp())
+                #     for n in notices:
+                #         if n["name"] == notice["name"] \
+                #            and n["end"] == notice["end"]:
+                #             duplicate = True
+                #             break
+                #     if not duplicate:
+                #         notices.append(notice)
+                if "記念" in kikan.get_text(strip=True):
+                    notice["name"] = kikan.get_text(strip=True)
+                else:
+                    notice["name"] = name + " " + kikan.get_text(strip=True)
+                notice["url"] = url
+                begin_dt = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
+                notice["begin"] = int(begin_dt.timestamp())
+                end_dt = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
+                notice["end"] = int(end_dt.timestamp())
+                notice["title"] = name
+                notice["type"] = "campaign"
+                for n in notices:
+                    if n["name"] == notice["name"] \
+                        and n["end"] == notice["end"]:
+                        duplicate = True
+                        break
+                if not duplicate:
+                    notices.append(notice)
     return notices
 
 
@@ -398,6 +469,7 @@ def parse_event(url, expired_data=False):
                 notice["begin"] = int(begin_dt.timestamp())
                 end_dt = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
                 notice["end"] = int(end_dt.timestamp())
+                notice["title"] = name
                 notice["type"] = "eventQuest"
                 for n in notices:
                     if n["name"] == notice["name"] \
@@ -453,6 +525,7 @@ def parse_event(url, expired_data=False):
                         notice["begin"] = int(begin_s.timestamp())
                         end_s = dt.strptime(end, "%Y/%m/%d %H:%M:%S")
                         notice["end"] = int(end_s.timestamp())
+                        notice["title"] = name
                         notice["type"] = "eventQuest"
                         notices.append(notice)
                         break
