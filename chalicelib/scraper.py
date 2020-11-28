@@ -612,7 +612,7 @@ def get_pages(url, target_time=int(time.time()), recursive=False):
             event_list = None
         if event_list is not None:
             notices += event_list
-        since_dt = dtime - datetime.timedelta(days=14)
+        since_dt = dtime - datetime.timedelta(days=40)
         if event_list is not None:
             for event in event_list:
                 if "begin" in event.keys():
@@ -620,11 +620,14 @@ def get_pages(url, target_time=int(time.time()), recursive=False):
                         return notices
 
     # 再帰取得(デバッグ用)
-    if recursive:
-        tag_pager = soup.select_one('div.pager p.prev a')
-        if tag_pager is not None:
-            prev_url = base_url + tag_pager.get("href")
-            notice = get_pages(prev_url, target_time=target_time, recursive=True)
+    tag_pager = soup.select_one('div.pager p.prev a')
+    if tag_pager is not None:
+        prev_url = base_url + tag_pager.get("href")
+        if recursive:
+            notices += get_pages(prev_url, target_time=target_time, recursive=True)
+        else:
+            notice = get_pages(prev_url, target_time=target_time)
+            notices += notice
 
     return notices
 
