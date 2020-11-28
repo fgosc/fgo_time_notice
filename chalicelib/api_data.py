@@ -65,6 +65,16 @@ def make_data_from_api(web_notices, target_time=int(time.time())):
             notice["begin"] = event["startedAt"]
             notice["end"] = event["endedAt"]
             notice["type"] = event["type"]
+            # 重複チェック
+            duplicate = False
+            for tmp in notices:
+                if notice["begin"] == tmp["begin"] \
+                   and notice["end"] == tmp["end"] \
+                   and notice["name"] == tmp["name"]:
+                    duplicate = True
+                    break
+            if duplicate:
+                continue
             notices.append(notice)
     return notices
 
