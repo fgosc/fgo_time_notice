@@ -3,6 +3,7 @@ import argparse
 import logging
 import re
 from datetime import datetime as dt
+import datetime
 import json
 import time
 
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 quests = []
 
 OUTPUT_FILE = "fgo_event.json"
-pattern1 = r"(?P<s_year>20[12][0-9])年(?P<s_month>[0-9]{1,2})月(?P<s_day>[0-9]{1,2})日\([日月火水木金土]\)"
+pattern1 = r"(?!※)(?P<s_year>20[12][0-9])年(?P<s_month>[0-9]{1,2})月(?P<s_day>[0-9]{1,2})日\([日月火水木金土]\)"
 pattern2 = r"(?P<s_hour>([0-9]|[01][0-9]|2[0-3])):(?P<s_min>[0-5][0-9])"
 pattern3 = r"(?P<e_month>[0-9]{1,2})月(?P<e_day>[0-9]{1,2})日\([日月火水木金土]\)"
 pattern4 = r"(?P<e_hour>([0-9]|[01][0-9]|2[0-3])):(?P<e_min>[0-5][0-9])"
@@ -27,7 +28,7 @@ pattern_sameday = pattern1 + " " + pattern2 + "～" + pattern4
 pattern_undefine = pattern1 + " " + pattern2 + "～" + "未定"
 
 
-def parse_maintenance(url, expired_data=False):
+def parse_maintenance(url):
     """
     メンテナンスを扱う
     """
@@ -43,8 +44,8 @@ def parse_maintenance(url, expired_data=False):
         name = "メンテナンス"
 
     notices = []
-    if "終了" in tag_item.get_text():
-        return notices
+    # if "終了" in tag_item.get_text():
+    #     return notices
     str_np = 'p:contains("「Fate/Grand Order」をプレイすることができません")'
     cant_play = soup.select_one(str_np)
     if cant_play is None:
@@ -128,14 +129,31 @@ def parse_broadcast(url):
         name = re.sub(title_pattern, r"\g<title>", t.group())
     else:
         logger.debug("not find title")
-        name = ""
+        name = tag_item.get_text().replace("について", "")
+        name = name.replace("について", "")
+        name = re.sub("【.*?】", "", name)
 
     notices = []
+    # 番組タイトル
+    desc = soup.select_one('span:contains("番組タイトル")')
+    if desc is None:
+        desc = soup.select_one('p:contains("番組タイトル")')
 
-    # まず日付をとる
+    for title_str in desc.next_elements:
+        if "カルデア放送局" not in title_str:
+            continue
+        else:
+            name = title_str.strip()
+            break
+    # 日付
     desc = soup.select_one('span:contains("配信日時")')
+    if desc is None:
+        desc = soup.select_one('span:contains("放送日時")')
+    if desc is None:
+        desc = soup.select_one('p:contains("◆放送日時◆")')
+        
     pattern1 = r"(?P<s_year>20[12][0-9])年(?P<s_month>[0-9]{1,2})月(?P<s_day>[0-9]{1,2})日"
-    pattern2 = r"本配信:(?P<s_hour>([01][0-9]|2[0-3])):(?P<s_min>[0-5][0-9])～"
+    pattern2 = r"本(配信|放送):(?P<s_hour>([01][0-9]|2[0-3])):(?P<s_min>[0-5][0-9])～"
     for kikan in desc.next_elements:
         if kikan == "\n":
             continue
@@ -205,7 +223,7 @@ def parse_preview(url):
     return notices
 
 
-def parse_campaign(url, expired_data=False):
+def parse_campaign(url):
     """
     キャンペーンのお知らせを扱う
     """
@@ -213,17 +231,10 @@ def parse_campaign(url, expired_data=False):
     html = requests.get(url)
     soup = BeautifulSoup(html.content, "html.parser")
     tag_item = soup.select_one('div.title')
-    title_pattern = r"(?P<title>(|｢|「).+キャンペーン)(|』)"
-    t = re.search(title_pattern, tag_item.get_text())
-    if t:
-        logger.debug("find title")
-        name = re.sub(title_pattern, r"\g<title>", t.group())
-    else:
-        logger.debug("not find title")
-        name = tag_item.get_text()
+    name = tag_item.get_text()
     name = name.replace("開催！", "")
     name = name.replace("開催", "")
-    name = name.replace("【期間限定】", "")
+    name = re.sub("【.*?】", "", name)
     notices = []
 
     descs = soup.select('p span.em01')
@@ -396,7 +407,7 @@ def parse_campaign(url, expired_data=False):
     return notices
 
 
-def parse_event(url, expired_data=False):
+def parse_event(url, target_time=int(time.time())):
     """
     時間関係の部分を抽出
     """
@@ -519,7 +530,7 @@ def parse_event(url, expired_data=False):
                     #         notices.append(notice)
                     #         break
                     start_t = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
-                    cond2 = time.time() - start_t.timestamp() < 0
+                    cond2 = target_time - start_t.timestamp() < 0
                     if cond2:
                         begin_s = dt.strptime(start, "%Y/%m/%d %H:%M:%S")
                         notice["begin"] = int(begin_s.timestamp())
@@ -536,11 +547,11 @@ def parse_event(url, expired_data=False):
 
     target = soup.select_one('p:contains("イベント参加中のマスター全員で強敵に挑む、特殊な形式のクエスト")')
     if target is not None:
-        m2 = re.search(pattern0 + pattern2, target.get_text(strip=True))
+        m2 = re.search(pattern0 + " " + pattern2, target.get_text(strip=True))
         if m2:
             rs_str = r"/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>:00"
             rs_ptn = year + rs_str
-            raid_start = re.sub(pattern0 + pattern2, rs_ptn, m2.group())
+            raid_start = re.sub(pattern0 + " " + pattern2, rs_ptn, m2.group())
             raid_notice["name"] = name + " レイド解放日時"
             raid_notice["url"] = url
             begin_s = dt.strptime(raid_start, "%Y/%m/%d %H:%M:%S")
@@ -552,7 +563,7 @@ def parse_event(url, expired_data=False):
     return notices
 
 
-def parse_page(load_url, expired_data=False):
+def parse_page(load_url, target_time=int(time.time())):
     html = requests.get(load_url)
     soup = BeautifulSoup(html.content, "html.parser")
     page_title = soup.find(
@@ -568,7 +579,7 @@ def parse_page(load_url, expired_data=False):
         if word in page_title:
             return None
     if "キャンペーン" in page_title or "Anniversary" in page_title:
-        notices = parse_campaign(load_url, expired_data)
+        notices = parse_campaign(load_url)
     elif "予告" in page_title:
         notices = parse_preview(load_url)
     elif "配信" in page_title:
@@ -579,64 +590,119 @@ def parse_page(load_url, expired_data=False):
     elif "メンテナンス" in page_title:
         notices = parse_maintenance(load_url)
     else:
-        notices = parse_event(load_url, expired_data)
+        notices = parse_event(load_url, target_time=target_time)
     return notices
 
 
-def get_pages(url, expired_data=False):
+def get_pages(url, target_time=int(time.time()), recursive=False):
     base_url = "https://news.fate-go.jp"
     html = requests.get(url)
     soup = BeautifulSoup(html.content, "html.parser")
     tag_item = soup.select('ul.list_news li a')
+    dtime = dt.fromtimestamp(target_time)
     notices = []
 
     for tag in tag_item:
         load_url = base_url + tag.get("href")
         logger.debug(load_url)
         try:
-            event_list = parse_page(load_url, expired_data)
+            event_list = parse_page(load_url, target_time=target_time)
         except Exception as e:
             logger.exception(e)
             event_list = None
         if event_list is not None:
             notices += event_list
+        since_dt = dtime - datetime.timedelta(days=14)
+        if event_list is not None:
+            for event in event_list:
+                if "begin" in event.keys():
+                    if since_dt.timestamp() > event["begin"]:
+                        return notices
+
+    # 再帰取得(デバッグ用)
+    if recursive:
+        tag_pager = soup.select_one('div.pager p.prev a')
+        if tag_pager is not None:
+            prev_url = base_url + tag_pager.get("href")
+            notice = get_pages(prev_url, target_time=target_time, recursive=True)
+
     return notices
 
 
-def expired_notice(notices):
+def expired_notices(notices, target_time=int(time.time())):
+    dtime = dt.fromtimestamp(target_time)
+    ntime = dt.fromtimestamp(int(time.time()))
+
     new_notices = []
     for notice in notices:
+        if dtime != ntime:
+            # 二週間前〰一週間後のデータに絞る
+            since_dt = dtime - datetime.timedelta(days=14)
+            until_dt = dtime + datetime.timedelta(days=7)
+            if "begin" in notice.keys():
+                if not (since_dt < dt.fromtimestamp(notice["begin"]) < until_dt):
+                    continue
+            elif "end" in notice.keys():
+                if not (since_dt < dt.fromtimestamp(notice["end"]) < until_dt):
+                    continue
+
+
         # 終了時間が過ぎた項目はカット
         if notice["end"] is not None:
-            if notice["end"] < int(time.time()):
+            if notice["end"] < target_time:
                 continue
         if notice["type"] == "broadcast" \
-           and notice["begin"] < int(time.time()):
+           and notice["begin"] < target_time:
             continue
         if notice["type"] == "eventQuest" \
            and "イベント開催期間" in notice["name"] \
            or "解放" in notice["name"] \
-           and notice["begin"] < int(time.time()):
+           and notice["begin"] < target_time:
            # APIからのデータと重複するため
             continue
         if notice["type"] == "campaign" \
-           and notice["begin"] < int(time.time()):
+           and notice["begin"] < target_time:
            # APIからのデータと重複するため
             continue
         new_notices.append(notice)
     return new_notices
 
 
-def make_notices():
+def sort_notices(notices):
+    """
+    ソートと一部の重複除去を行う
+    現時点ではAP75%ダウンの重複除去処理のみ
+    """
+    notices = sorted(notices, key=lambda x: x['begin'], reverse=True)
+    new_notices = []
+    ap75down = False
+    for notice in notices:
+        if ap75down and "消費AP 75%DOWN" in notice["name"]:
+            continue
+        if "消費AP 75%DOWN" in notice["name"]:
+            ap75down = True
+        new_notices.append(notice)
+
+    return new_notices[::-1]
+
+
+def make_notices(target_time=int(time.time()), recursive=False):
     # Webページを取得して解析する
+    # target_time を指定するとその時刻を基準に二週間前〰一週間後までのデータに絞る
+    # t = "2020/10/09 20:01"
+    # tt = int(dt.strptime(t, "%Y/%m/%d %H:%M").timestamp())
+    # target_time = tt
+    # #target_time = int(time.time())
+    # recursive=True
+
     news_url = "https://news.fate-go.jp"
     maintenance_url = "https://news.fate-go.jp/maintenance"
-    notices_n = get_pages(news_url)
-    notices_m = get_pages(maintenance_url)
-#    notices_e = get_pages(news_url, expired_data=True)
-    notices_a = make_data_from_api(notices_n)
-    notices_e = expired_notice(notices_n + notices_m)
-    return notices_e + notices_a
+    notices_n = get_pages(news_url, target_time=target_time, recursive=recursive)
+    notices_m = get_pages(maintenance_url, target_time=target_time, recursive=recursive)
+    notices_a = make_data_from_api(notices_n, target_time=target_time)
+    notices_e = expired_notices(notices_n + notices_m, target_time=target_time)
+    notices = sort_notices(notices_e + notices_a)
+    return notices
 
 
 def main():

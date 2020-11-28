@@ -2,6 +2,7 @@
 import argparse
 import logging
 import datetime
+import time
 
 import requests
 
@@ -11,16 +12,23 @@ event_url = "https://api.atlasacademy.io/export/JP/basic_event.json"
 NO_DEADLINE_ENDEDAT = 1893423600
 
 
-def make_data_from_api(web_notices, dtime=datetime.datetime.now()):
+def make_data_from_api(web_notices, target_time=int(time.time())):
     # dtime: 指定時間(datetime)
+    dtime = datetime.datetime.fromtimestamp(target_time)
+    ntime = datetime.datetime.fromtimestamp(int(time.time()))
     notices = []
     r_get = requests.get(event_url)
     event_list = r_get.json()
     for event in event_list:
-        # open
         notice = {}
         stime = datetime.datetime.fromtimestamp(event["startedAt"])
         etime = datetime.datetime.fromtimestamp(event["endedAt"])
+        if dtime != ntime:
+            # 二週間前〰一週間後のデータに絞る
+            since_dt = dtime - datetime.timedelta(days=14)
+            until_dt = dtime + datetime.timedelta(days=7)
+            if not since_dt < dtime < until_dt:
+                continue
         td_s = dtime - stime
         td_e = etime - dtime
         if td_s.total_seconds() >= 0 and td_e.total_seconds() >= 0 \
@@ -63,7 +71,11 @@ def make_data_from_api(web_notices, dtime=datetime.datetime.now()):
 
 def main():
     # Webページを取得して解析する
-    d = make_data_from_api()
+    # t = "2019/11/23 13:00"
+    # dt = int(datetime.datetime.strptime(t, "%Y/%m/%d %H:%M").timestamp())
+    # target_time = dt
+    target_time = int(time.time())
+    d = make_data_from_api([], target_time=target_time)
     print(d)
 
 
