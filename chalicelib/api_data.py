@@ -25,7 +25,7 @@ def make_data_from_api(web_notices, target_time=int(time.time())):
         etime = datetime.datetime.fromtimestamp(event["endedAt"])
         if dtime != ntime:
             # 二週間前〰一週間後のデータに絞る
-            since_dt = dtime - datetime.timedelta(days=14)
+            since_dt = dtime - datetime.timedelta(days=40)
             until_dt = dtime + datetime.timedelta(days=7)
             if not since_dt < dtime < until_dt:
                 continue
