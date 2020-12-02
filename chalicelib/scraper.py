@@ -208,23 +208,33 @@ def parse_preview(url):
     #     name = ""
 
     notices = []
-    descs = soup.select('span:contains("イベント開催予定") ~ span.em01')
-    if len(descs) == 0:
-        descs = soup.select('span:contains("公開日時") ~ span.em01')
+    desc = soup.select_one('span:contains("イベント開催予定") ~ span.em01')
+    if desc is None:
+        desc = soup.select_one('span:contains("公開日時") ~ span.em01')
 
 #    logger.debug("descs: %s", descs)
-    for desc in descs:
-        notice = {}
-        if "予定" not in name:
-            notice["name"] = name + " イベント開催予定"
-        else:
-            notice["name"] = name            
-        notice["url"] = url
+    notice = {}
+    if "予定" not in name:
+        notice["name"] = name + " イベント開催予定"
+    else:
+        notice["name"] = name            
+    notice["url"] = url
+
+    m1 = re.search(pattern1 + " " + pattern2, desc.get_text(strip=True))
+    if m1:
+        str_s = r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>"
+        start = re.sub(pattern1 + " " + pattern2, str_s, m1.group())
+        notice["begin"] = int(dt.strptime(
+                                          start,
+                                          "%Y/%m/%d %H:%M").timestamp()
+                                          )
+        notice["end"] = None
+    else:
         notice["begin"] = None
         notice["end"] = None
         notice["begin_alias"] = desc.get_text(strip=True)
-        notice["type"] = "eventQuest"
-        notices.append(notice)
+    notice["type"] = "eventQuest"
+    notices.append(notice)
 
     return notices
 
