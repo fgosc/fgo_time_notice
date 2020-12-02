@@ -197,22 +197,28 @@ def parse_preview(url):
     html = requests.get(url)
     soup = BeautifulSoup(html.content, "html.parser")
     tag_item = soup.select_one('div.title')
-    title_pattern = r"(｢|「)(?P<title>.+)(｣|」)"
-    t = re.search(title_pattern, tag_item.get_text())
-    if t:
-        logger.debug("find title")
-        name = re.sub(title_pattern, r"\g<title>", t.group())
-    else:
-        logger.debug("not find title")
-        name = ""
+    name = re.sub("【.*?】", "", tag_item.get_text())
+    # title_pattern = r"(｢|「)(?P<title>.+)(｣|」)"
+    # t = re.search(title_pattern, tag_item.get_text())
+    # if t:
+    #     logger.debug("find title")
+    #     name = re.sub(title_pattern, r"\g<title>", t.group())
+    # else:
+    #     logger.debug("not find title")
+    #     name = ""
 
     notices = []
-
     descs = soup.select('span:contains("イベント開催予定") ~ span.em01')
+    if len(descs) == 0:
+        descs = soup.select('span:contains("公開日時") ~ span.em01')
+
 #    logger.debug("descs: %s", descs)
     for desc in descs:
         notice = {}
-        notice["name"] = name + " イベント開催予定"
+        if "予定" not in name:
+            notice["name"] = name + " イベント開催予定"
+        else:
+            notice["name"] = name            
         notice["url"] = url
         notice["begin"] = None
         notice["end"] = None
@@ -616,8 +622,9 @@ def get_pages(url, target_time=int(time.time()), recursive=False):
         if event_list is not None:
             for event in event_list:
                 if "begin" in event.keys():
-                    if since_dt.timestamp() > event["begin"]:
-                        return notices
+                    if event["begin"] is not None:
+                        if since_dt.timestamp() > event["begin"]:
+                            return notices
 
     # 再帰取得(デバッグ用)
     tag_pager = soup.select_one('div.pager p.prev a')
@@ -643,11 +650,13 @@ def expired_notices(notices, target_time=int(time.time())):
             since_dt = dtime - datetime.timedelta(days=14)
             until_dt = dtime + datetime.timedelta(days=7)
             if "begin" in notice.keys():
-                if not (since_dt < dt.fromtimestamp(notice["begin"]) < until_dt):
-                    continue
+                if notice["begin"] is not None:
+                    if not (since_dt < dt.fromtimestamp(notice["begin"]) < until_dt):
+                        continue
             elif "end" in notice.keys():
-                if not (since_dt < dt.fromtimestamp(notice["end"]) < until_dt):
-                    continue
+                if notice["end"] is not None:
+                    if not (since_dt < dt.fromtimestamp(notice["end"]) < until_dt):
+                        continue
 
 
         # 終了時間が過ぎた項目はカット
@@ -676,7 +685,15 @@ def sort_notices(notices):
     ソートと一部の重複除去を行う
     現時点ではAP75%ダウンの重複除去処理のみ
     """
-    notices = sorted(notices, key=lambda x: x['begin'], reverse=True)
+    notices1 = []
+    notices2 = []
+    for notice in notices:
+        if notice["begin"] is not None:
+            notices1.append(notice)
+        else:
+            notices2.append(notice)
+    notices1 = sorted(notices1, key=lambda x: x['begin'], reverse=True)
+    notices = notices1 +notices2
     new_notices = []
     ap75down = False
     for notice in notices:
