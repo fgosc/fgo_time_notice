@@ -18,16 +18,16 @@
   {
     "name": "Fate/Grand Order ウィンターキャラバン オンライン 2021 福島",
     "url": "https://fes.fate-go.jp/winter/",
-    "begin": "",
-    "end": "",
+    "begin": null,
+    "end": null,
     "begin_alias": "2021年2月上旬",
     "type": "broadcast"
   },
   {
     "name": "Fate/Grand Order ウィンターキャラバン オンライン 2021 鹿児島",
     "url": "https://fes.fate-go.jp/winter/",
-    "begin": "",
-    "end": "",
+    "begin": null,
+    "end": null,
     "begin_alias": "2021年2月下旬",
     "type": "broadcast"
   }

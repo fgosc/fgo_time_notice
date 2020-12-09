@@ -23,10 +23,14 @@ def main():
             btime = re.sub(r"\(.*?\)", "", notice["begin"])
             notice["begin"] = int(dt.strptime(btime,
                                               "%Y年%m月%d日 %H:%M").timestamp())
+        else:
+            notice["begin"] = None
         if notice["end"]:
             etime = re.sub(r"\(.*?\)", "", notice["end"])
             notice["end"] = int(dt.strptime(etime,
                                             "%Y年%m月%d日 %H:%M").timestamp())
+        else:
+            notice["end"] = None
         new_notices.append(notice)
 
     with open(jsonfile, mode="w", encoding="UTF-8") as fout:
