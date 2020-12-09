@@ -727,11 +727,14 @@ def make_notices(target_time=int(time.time()), recursive=False):
 
     news_url = "https://news.fate-go.jp"
     maintenance_url = "https://news.fate-go.jp/maintenance"
+    manual_json = "https://raw.githubusercontent.com/fgosc/fgo_time_notice/main/manual/manual.json"
+    r = requests.get(manual_json)
+
     notices_n = get_pages(news_url, target_time=target_time, recursive=recursive)
     notices_m = get_pages(maintenance_url, target_time=target_time, recursive=recursive)
     notices_a = make_data_from_api(notices_n, target_time=target_time)
     notices_e = expired_notices(notices_n + notices_m, target_time=target_time)
-    notices = sort_notices(notices_e + notices_a)
+    notices = sort_notices(notices_e + notices_a + r.json())
     return notices
 
 
