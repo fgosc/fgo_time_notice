@@ -1,0 +1,34 @@
+[
+  {
+    "name": "Fate Project 大晦日TVスペシャル2020",
+    "url": "https://news.fate-go.jp/2020/1202nico/",
+    "begin": 1609419600,
+    "end": 1609426500,
+    "begin_alias": "",
+    "type": "broadcast"
+  },
+  {
+    "name": "Fate/Grand Order ウィンターキャラバン オンライン 2021 滋賀",
+    "url": "https://fes.fate-go.jp/winter/",
+    "begin": 1610870400,
+    "end": 1610874000,
+    "begin_alias": "",
+    "type": "broadcast"
+  },
+  {
+    "name": "Fate/Grand Order ウィンターキャラバン オンライン 2021 福島",
+    "url": "https://fes.fate-go.jp/winter/",
+    "begin": "",
+    "end": "",
+    "begin_alias": "2021年2月上旬",
+    "type": "broadcast"
+  },
+  {
+    "name": "Fate/Grand Order ウィンターキャラバン オンライン 2021 鹿児島",
+    "url": "https://fes.fate-go.jp/winter/",
+    "begin": "",
+    "end": "",
+    "begin_alias": "2021年2月下旬",
+    "type": "broadcast"
+  }
+]
