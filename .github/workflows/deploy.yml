@@ -9,8 +9,9 @@ jobs:
     steps:
     - uses: actions/checkout@master
     - name: chalice deploy
-      uses: jayef0/chalice-extended-action@v0.2.0
+      uses: jayef0/chalice-extended-action@release-v0.2.0
       env:
+        REQUIREMENTS_FILE: requirements.txt
         OPERATION: deploy
         STAGE: dev
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
