@@ -1,8 +1,7 @@
-on:
-  push:
-    branches:
-      - master
 name: Deploy branch to Chalice
+
+on: workflow_dispatch
+
 jobs:
   deploy:
     name: deploy
