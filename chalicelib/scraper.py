@@ -211,6 +211,8 @@ def parse_preview(url):
     desc = soup.select_one('span:contains("イベント開催予定") ~ span.em01')
     if desc is None:
         desc = soup.select_one('span:contains("公開日時") ~ span.em01')
+    if desc is None:
+        desc = soup.select_one('span:contains("イベント開催期間") ~ span.em01')
 
 #    logger.debug("descs: %s", descs)
     notice = {}
