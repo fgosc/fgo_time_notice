@@ -24,14 +24,6 @@
     "type": "broadcast"
   },
   {
-    "name": "栄光のサンタクロース･ロード ～封じられたクリスマスプレゼント～ 太陽のバンテージ・イベントアイテム交換期間",
-    "url": "https://news.fate-go.jp/2020/christmas2020/",
-    "begin": 1608109200,
-    "end": 1609905540,
-    "begin_alias": "",
-    "type": "eventQuest"
-  },
-  {
     "name": "栄光のサンタクロース･ロード ～封じられたクリスマスプレゼント～ クリスマス2020交換券交換期間",
     "url": "https://news.fate-go.jp/2020/christmas2020/",
     "begin": 1608109200,
