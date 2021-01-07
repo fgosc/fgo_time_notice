@@ -30,5 +30,21 @@
     "end": 1610164740,
     "begin_alias": "",
     "type": "eventQuest"
+  },
+  {
+    "name": "デイリーミッション2021年お正月限定報酬2倍",
+    "url": "https://news.fate-go.jp/2021/newyear2021_cp/#ttl5",
+    "begin": 1609426800,
+    "end": 1610031540,
+    "begin_alias": "eventQuest",
+    "type": null
+  },
+  {
+    "name": "お正月特別パネルミッション",
+    "url": "https://news.fate-go.jp/2021/newyear2021_cp/#ttl4",
+    "begin": 1609426800,
+    "end": 1610251140,
+    "begin_alias": "eventQuest",
+    "type": null
   }
 ]
