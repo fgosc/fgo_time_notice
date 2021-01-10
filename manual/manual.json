@@ -22,13 +22,5 @@
     "end": null,
     "begin_alias": "2021年2月下旬",
     "type": "broadcast"
-  },
-  {
-    "name": "お正月特別パネルミッション",
-    "url": "https://news.fate-go.jp/2021/newyear2021_cp/#ttl4",
-    "begin": 1609426800,
-    "end": 1610251140,
-    "begin_alias": "eventQuest",
-    "type": null
   }
 ]
