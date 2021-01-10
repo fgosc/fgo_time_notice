@@ -24,14 +24,6 @@
     "type": "broadcast"
   },
   {
-    "name": "栄光のサンタクロース･ロード ～封じられたクリスマスプレゼント～ クリスマス2020交換券交換期間",
-    "url": "https://news.fate-go.jp/2020/christmas2020/",
-    "begin": 1608109200,
-    "end": 1610164740,
-    "begin_alias": "",
-    "type": "eventQuest"
-  },
-  {
     "name": "お正月特別パネルミッション",
     "url": "https://news.fate-go.jp/2021/newyear2021_cp/#ttl4",
     "begin": 1609426800,
