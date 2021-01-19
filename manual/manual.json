@@ -16,14 +16,6 @@
     "type": "broadcast"
   },
   {
-    "name": "Fate/Grand Order ウィンターキャラバン オンライン 2021 鹿児島",
-    "url": "https://fes.fate-go.jp/winter/",
-    "begin": null,
-    "end": null,
-    "begin_alias": "2021年2月下旬",
-    "type": "broadcast"
-  },
-  {
     "name": "第6回 Fate/Grand Order ユーザーアンケート",
     "url": "https://news.fate-go.jp/2021/questionnaire_6th/",
     "begin": 1610874000,
