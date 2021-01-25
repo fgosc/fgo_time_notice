@@ -659,7 +659,7 @@ def expired_notices(notices, target_time=int(time.time())):
     for notice in notices:
         if dtime != ntime:
             # 二週間前〰十日後のデータに絞る
-            since_dt = dtime - datetime.timedelta(days=14)
+            since_dt = dtime - datetime.timedelta(days=21)
             until_dt = dtime + datetime.timedelta(days=10)
             if "begin" in notice.keys():
                 if notice["begin"] is not None:
