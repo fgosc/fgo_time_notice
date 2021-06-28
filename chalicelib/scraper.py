@@ -46,13 +46,13 @@ def parse_maintenance(url):
     notices = []
     # if "終了" in tag_item.get_text():
     #     return notices
-    str_np = 'p:contains("「Fate/Grand Order」をプレイすることができません")'
+    str_np = 'p:-soup-contains("「Fate/Grand Order」をプレイすることができません")'
     cant_play = soup.select_one(str_np)
     if cant_play is None:
         return notices
 
     # まず日付をとる
-    desc = soup.select_one('span.headline:contains("日時")')
+    desc = soup.select_one('span.headline:-soup-contains("日時")')
     for kikan in desc.next_elements:
         if kikan == "\n":
             continue
@@ -135,9 +135,9 @@ def parse_broadcast(url):
 
     notices = []
     # 番組タイトル
-    desc = soup.select_one('span:contains("番組タイトル")')
+    desc = soup.select_one('span:-soup-contains("番組タイトル")')
     if desc is None:
-        desc = soup.select_one('p:contains("番組タイトル")')
+        desc = soup.select_one('p:-soup-contains("番組タイトル")')
 
     for title_str in desc.next_elements:
         if "カルデア放送局" not in title_str:
@@ -146,11 +146,11 @@ def parse_broadcast(url):
             name = title_str.strip()
             break
     # 日付
-    desc = soup.select_one('span:contains("配信日時")')
+    desc = soup.select_one('span:-soup-contains("配信日時")')
     if desc is None:
-        desc = soup.select_one('span:contains("放送日時")')
+        desc = soup.select_one('span:-soup-contains("放送日時")')
     if desc is None:
-        desc = soup.select_one('p:contains("◆放送日時◆")')
+        desc = soup.select_one('p:-soup-contains("◆放送日時◆")')
         
     pattern1 = r"(?P<s_year>20[12][0-9])年(?P<s_month>[0-9]{1,2})月(?P<s_day>[0-9]{1,2})日"
     pattern2 = r"本(配信|放送):(?P<s_hour>([01][0-9]|2[0-3])):(?P<s_min>[0-5][0-9])～"
@@ -208,11 +208,11 @@ def parse_preview(url):
     #     name = ""
 
     notices = []
-    desc = soup.select_one('span:contains("イベント開催予定") ~ span.em01')
+    desc = soup.select_one('span:-soup-contains("イベント開催予定") ~ span.em01')
     if desc is None:
-        desc = soup.select_one('span:contains("公開日時") ~ span.em01')
+        desc = soup.select_one('span:-soup-contains("公開日時") ~ span.em01')
     if desc is None:
-        desc = soup.select_one('span:contains("イベント開催期間") ~ span.em01')
+        desc = soup.select_one('span:-soup-contains("イベント開催期間") ~ span.em01')
 
 #    logger.debug("descs: %s", descs)
     notice = {}
@@ -510,7 +510,7 @@ def parse_event(url, target_time=int(time.time())):
 
     # クエストの解放期間を取得
     # 解放期間が直近のクエスト一つを出すよう変更
-    target = soup.select_one('p:contains("【クエストの開催期間】") ~ table.trbgcolor')
+    target = soup.select_one('p:-soup-contains("【クエストの開催期間】") ~ table.trbgcolor')
     if target is None:
         return notices
     elif len(target.select('tr th')) == 2:
@@ -563,7 +563,7 @@ def parse_event(url, target_time=int(time.time())):
     raid_notice = {}
     pattern0 = r"(?P<s_month>[0-9]{1,2})月(?P<s_day>[0-9]{1,2})日\([日月火水木金土]\)"
 
-    target = soup.select_one('p:contains("イベント参加中のマスター全員で強敵に挑む、特殊な形式のクエスト")')
+    target = soup.select_one('p:-soup-contains("イベント参加中のマスター全員で強敵に挑む、特殊な形式のクエスト")')
     if target is not None:
         m2 = re.search(pattern0 + " " + pattern2, target.get_text(strip=True))
         if m2:
