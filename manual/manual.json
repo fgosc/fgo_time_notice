@@ -1,9 +1,17 @@
 [
   {
     "name": "2部6章(後半)",
-    "url": "https://news.fate-go.jp/",
-    "begin": 1626256800,
+    "url": "https://news.fate-go.jp/2021/0611nico/",
+    "begin": 1626262200,
     "end": null,
+    "begin_alias": "",
+    "type": "broadcast"
+  },
+  {
+    "name": "Fate/Grand Order Fes. 2021 ～6th Anniversary～",
+    "url": "https://fes.fate-go.jp/",
+    "begin": 1627311600,
+    "end": 1627829940,
     "begin_alias": "",
     "type": "broadcast"
   }
