@@ -633,10 +633,17 @@ def get_pages(url, target_time=int(time.time()), recursive=False):
         since_dt = dtime - datetime.timedelta(days=40)
         if event_list is not None:
             for event in event_list:
-                if "begin" in event.keys():
+                if "end" in event.keys():
+                    if event["end"] is not None:
+                        if dtime.timestamp() > event["end"]:
+                            if event["begin"] is not None:
+                                if since_dt.timestamp() > event["begin"]:
+                                    return notices
+                else:
                     if event["begin"] is not None:
                         if since_dt.timestamp() > event["begin"]:
                             return notices
+
 
     # 再帰取得(デバッグ用)
     tag_pager = soup.select_one('div.pager p.prev a')
