@@ -8,15 +8,7 @@
     "type": "broadcast"
   },
   {
-    "name": "FGO THE DRAMALOGUE Flashback Lostbelt No.1 - No.5 -マシュ・キリエライト-",
-    "url": "https://fes.fate-go.jp/",
-    "begin": 1627386300,
-    "end": null,
-    "begin_alias": "",
-    "type": "broadcast"
-  },
-  {
-    "name": "FGO有識者会議",
+    "name": "FGO有識者秘密会議",
     "url": "https://fes.fate-go.jp/",
     "begin": 1627473600,
     "end": null,
@@ -36,6 +28,14 @@
     "url": "https://fes.fate-go.jp/",
     "begin": 1627646400,
     "end": null,
+    "begin_alias": "",
+    "type": "broadcast"
+  },
+  {
+    "name": "FGO段位認定試験",
+    "url": "https://fgoshiken.jp/",
+    "begin": 1627704000,
+    "end": 1627707540,
     "begin_alias": "",
     "type": "broadcast"
   },
