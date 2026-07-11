@@ -1,0 +1,20 @@
+[project]
+name = "fgo-time-notice"
+version = "0.1.0"
+description = "FGO time notice tools"
+requires-python = ">=3.14,<3.15"
+dependencies = [
+    "beautifulsoup4",
+    "requests",
+    "chalice",
+    "boto3",
+]
+
+[project.optional-dependencies]
+tn = [
+    "PySimpleGUI",
+    "Pillow",
+]
+
+[tool.uv]
+package = false

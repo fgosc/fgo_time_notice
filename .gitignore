@@ -2,3 +2,4 @@
 .chalice/venv/
 .chalice/deployed/
 __pycache__/
+.venv/
