@@ -24,17 +24,12 @@ def main(args):
 
 
 if __name__ == '__main__':
-    # オプションの解析
-    parser = argparse.ArgumentParser(
-                description='Image Parse for FGO Battle Results'
-                )
-    # 3. parser.add_argumentで受け取る引数を追加していく
+    parser = argparse.ArgumentParser(description='Parser for FGO Information Pages')
     parser.add_argument('-t', '--time', type=str)
+    parser.add_argument('-l', '--loglevel', choices=('debug', 'info'), default='info')
 
-    parser.add_argument('-l', '--loglevel',
-                        choices=('debug', 'info'), default='info')
+    args = parser.parse_args()
 
-    args = parser.parse_args()    # 引数を解析
     logging.basicConfig(
         level=logging.INFO,
         format='%(name)s <%(filename)s-L%(lineno)s> [%(levelname)s] %(message)s',

@@ -12,7 +12,7 @@ Fate Grand/Order のお知らせに関する時刻をJSON形式で取得する
 
 ## 仕様
 ```
-$ python scrape_event.py
+$ uv run scrape_event.py
 ```
 でFate Grand/Orderのお知らせから時間に関する情報をJSON形式で出力します
 
@@ -33,12 +33,12 @@ $ python scrape_event.py
 ※ Windows の場合、Packageから実行ファイルをZIPで取得できます
 
 ```
-$ pip install -r requirements_tn.txt
+$ uv sync --extra tn
 ```
 
 ### 起動
 ```
-$ python fgo_time_notice.py
+$ uv run fgo_time_notice.py
 ```
 ### 使い方
 - 項目をクリックするとブラウザで該当するリンクが開かれます
