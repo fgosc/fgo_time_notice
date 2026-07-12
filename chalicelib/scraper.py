@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 import argparse
-import logging
-import re
-from datetime import datetime as dt
 import datetime
 import json
+import logging
+import re
 import time
+from datetime import datetime as dt
 
 import requests
 from bs4 import BeautifulSoup
@@ -29,13 +29,10 @@ pattern_undefine = pattern1 + " " + pattern2 + "～" + "未定"
 
 
 def parse_maintenance(url):
-    """
-    メンテナンスを扱う
-    """
-
+    """メンテナンスを扱う"""
     html = requests.get(url)
     soup = BeautifulSoup(html.content, "html.parser")
-    tag_item = soup.select_one('div.title')
+    tag_item = soup.select_one("div.title")
     if "臨時" in tag_item.get_text():
         name = "臨時メンテナンス"
     elif "緊急" in tag_item.get_text():
@@ -67,10 +64,8 @@ def parse_maintenance(url):
             notice["name"] = name
             notice["url"] = url
             notice["begin"] = int(
-                                  dt.strptime(
-                                              start,
-                                              "%Y/%m/%d %H:%M").timestamp()
-                                  )
+                dt.strptime(start, "%Y/%m/%d %H:%M").timestamp(),
+            )
             notice["end"] = int(dt.strptime(end, "%Y/%m/%d %H:%M").timestamp())
             notice["type"] = "maintenance"
             notices.append(notice)
@@ -85,10 +80,12 @@ def parse_maintenance(url):
             notice = {}
             notice["name"] = name
             notice["url"] = url
-            notice["begin"] = int(dt.strptime(
-                                              start,
-                                              "%Y/%m/%d %H:%M"
-                                              ).timestamp())
+            notice["begin"] = int(
+                dt.strptime(
+                    start,
+                    "%Y/%m/%d %H:%M",
+                ).timestamp(),
+            )
             notice["end"] = int(dt.strptime(end, "%Y/%m/%d %H:%M").timestamp())
             notice["type"] = "maintenance"
             notices.append(notice)
@@ -102,9 +99,7 @@ def parse_maintenance(url):
             notice = {}
             notice["name"] = name
             notice["url"] = url
-            notice["begin"] = int(dt.strptime(
-                                              start,
-                                              "%Y/%m/%d %H:%M").timestamp())
+            notice["begin"] = int(dt.strptime(start, "%Y/%m/%d %H:%M").timestamp())
             notice["end"] = None
             notice["type"] = "maintenance"
             notices.append(notice)
@@ -114,14 +109,12 @@ def parse_maintenance(url):
 
 
 def parse_broadcast(url):
-    """
-    カルデア放送局の配信のお知らせを扱う
+    """カルデア放送局の配信のお知らせを扱う
     開始時間しかないので放送が始まったら出力しない
     """
-
     html = requests.get(url)
     soup = BeautifulSoup(html.content, "html.parser")
-    tag_item = soup.select_one('div.title')
+    tag_item = soup.select_one("div.title")
     title_pattern = r"(｢|「)(?P<title>.+)(｣|」)"
     t = re.search(title_pattern, tag_item.get_text())
     if t:
@@ -142,17 +135,18 @@ def parse_broadcast(url):
     for title_str in desc.next_elements:
         if "カルデア放送局" not in title_str:
             continue
-        else:
-            name = title_str.strip()
-            break
+        name = title_str.strip()
+        break
     # 日付
     desc = soup.select_one('span:-soup-contains("配信日時")')
     if desc is None:
         desc = soup.select_one('span:-soup-contains("放送日時")')
     if desc is None:
         desc = soup.select_one('p:-soup-contains("◆放送日時◆")')
-        
-    pattern1 = r"(?P<s_year>20[12][0-9])年(?P<s_month>[0-9]{1,2})月(?P<s_day>[0-9]{1,2})日"
+
+    pattern1 = (
+        r"(?P<s_year>20[12][0-9])年(?P<s_month>[0-9]{1,2})月(?P<s_day>[0-9]{1,2})日"
+    )
     pattern2 = r"本(配信|放送):(?P<s_hour>([01][0-9]|2[0-3])):(?P<s_min>[0-5][0-9])～"
     for kikan in desc.next_elements:
         if kikan == "\n":
@@ -189,14 +183,12 @@ def parse_broadcast(url):
 
 
 def parse_preview(url):
-    """
-    予告のお知らせを扱う
+    """予告のお知らせを扱う
     予告なので終了時間は無し
     """
-
     html = requests.get(url)
     soup = BeautifulSoup(html.content, "html.parser")
-    tag_item = soup.select_one('div.title')
+    tag_item = soup.select_one("div.title")
     name = re.sub("【.*?】", "", tag_item.get_text())
     # title_pattern = r"(｢|「)(?P<title>.+)(｣|」)"
     # t = re.search(title_pattern, tag_item.get_text())
@@ -214,22 +206,21 @@ def parse_preview(url):
     if desc is None:
         desc = soup.select_one('span:-soup-contains("イベント開催期間") ~ span.em01')
 
-#    logger.debug("descs: %s", descs)
+    #    logger.debug("descs: %s", descs)
     notice = {}
     if "予定" not in name:
         notice["name"] = name + " イベント開催予定"
     else:
-        notice["name"] = name            
+        notice["name"] = name
     notice["url"] = url
 
     m1 = re.search(pattern1 + " " + pattern2, desc.get_text(strip=True))
     if m1:
         str_s = r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>"
         start = re.sub(pattern1 + " " + pattern2, str_s, m1.group())
-        notice["begin"] = int(dt.strptime(
-                                          start,
-                                          "%Y/%m/%d %H:%M").timestamp()
-                                          )
+        notice["begin"] = int(
+            dt.strptime(start, "%Y/%m/%d %H:%M").timestamp(),
+        )
         notice["end"] = None
     else:
         notice["begin"] = None
@@ -242,26 +233,23 @@ def parse_preview(url):
 
 
 def parse_campaign(url):
-    """
-    キャンペーンのお知らせを扱う
-    """
-
+    """キャンペーンのお知らせを扱う"""
     html = requests.get(url)
     soup = BeautifulSoup(html.content, "html.parser")
-    tag_item = soup.select_one('div.title')
+    tag_item = soup.select_one("div.title")
     name = tag_item.get_text()
     name = name.replace("開催！", "")
     name = name.replace("開催", "")
     name = re.sub("【.*?】", "", name)
     notices = []
 
-    descs = soup.select('p span.em01')
-#    logger.debug("descs: %s", descs)
+    descs = soup.select("p span.em01")
+    #    logger.debug("descs: %s", descs)
     # 公式のキャンペーン期限を抽出
     for desc in descs:
         flag = False  # 重複チェック
         notice = {}
-#        if re.search(pattern1 + pattern2 + pattern3 + pattern4, str(desc)):
+        #        if re.search(pattern1 + pattern2 + pattern3 + pattern4, str(desc)):
         m1 = re.search(pattern, desc.get_text(strip=True))
         if m1:
             flag = True
@@ -275,7 +263,7 @@ def parse_campaign(url):
                 if kikan == "\n":
                     # NavigableStringオブジェクトを操作したときのAttributeErrorを回避
                     continue
-                elif kikan.get_text(strip=True) in ["", "◆", "受け取り期間"]:
+                if kikan.get_text(strip=True) in ["", "◆", "受け取り期間"]:
                     # 受け取り期間はスキップする手抜き実装
                     continue
                 logger.debug(name)
@@ -320,7 +308,7 @@ def parse_campaign(url):
                 if kikan == "\n":
                     # NavigableStringオブジェクトを操作したときのAttributeErrorを回避
                     continue
-                elif kikan.get_text(strip=True) in ["", "◆", "受け取り期間"]:
+                if kikan.get_text(strip=True) in ["", "◆", "受け取り期間"]:
                     # 受け取り期間はスキップする手抜き実装
                     continue
                 logger.debug(name)
@@ -355,15 +343,23 @@ def parse_campaign(url):
             break
 
     # 交換期間を取得
-    descs = soup.select('p span.em01')
-#    logger.debug("descs: %s", descs)
+    descs = soup.select("p span.em01")
+    #    logger.debug("descs: %s", descs)
     for desc in descs:
         notice = {}
-#        if re.search(pattern1 + pattern2 + pattern3 + pattern4, str(desc)):
+        #        if re.search(pattern1 + pattern2 + pattern3 + pattern4, str(desc)):
         m3 = re.search(pattern, desc.get_text(strip=True))
         if m3:
-            start = re.sub(pattern, r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>:00", m3.group())
-            end = re.sub(pattern, r"\g<s_year>/\g<e_month>/\g<e_day> \g<e_hour>:\g<e_min>:59", m3.group())
+            start = re.sub(
+                pattern,
+                r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>:00",
+                m3.group(),
+            )
+            end = re.sub(
+                pattern,
+                r"\g<s_year>/\g<e_month>/\g<e_day> \g<e_hour>:\g<e_min>:59",
+                m3.group(),
+            )
             year = re.sub(pattern, r"\g<s_year>", m3.group())
             # 空白にならないところまで親要素をたどる
             # お得な攻略方法獲得経験値2倍が「開催期間」としてでてくるのが冗長
@@ -373,7 +369,7 @@ def parse_campaign(url):
                     # NavigableStringオブジェクトを操作したときのAttributeErrorを回避
                     continue
                 # elif kikan.get_text(strip=True) in ["", "◆", "開催期間", "受け取り期間"]:
-                elif "交換期間" not in kikan.get_text(strip=True):
+                if "交換期間" not in kikan.get_text(strip=True):
                     # 開催期間は配布鯖経験値2倍期間をスキップする手抜き実装
                     # 受け取り期間はログインボーナスをスキップする手抜き実装
                     continue
@@ -416,8 +412,7 @@ def parse_campaign(url):
                 notice["title"] = name
                 notice["type"] = "campaign"
                 for n in notices:
-                    if n["name"] == notice["name"] \
-                        and n["end"] == notice["end"]:
+                    if n["name"] == notice["name"] and n["end"] == notice["end"]:
                         duplicate = True
                         break
                 if not duplicate:
@@ -426,12 +421,10 @@ def parse_campaign(url):
 
 
 def parse_event(url, target_time=int(time.time())):
-    """
-    時間関係の部分を抽出
-    """
+    """時間関係の部分を抽出"""
     html = requests.get(url)
     soup = BeautifulSoup(html.content, "html.parser")
-    tag_item = soup.select_one('div.title')
+    tag_item = soup.select_one("div.title")
     title_pattern = r"(｢|「)(?P<title>.+)(｣|」)"
     t = re.search(title_pattern, tag_item.get_text())
     if t:
@@ -444,15 +437,23 @@ def parse_event(url, target_time=int(time.time())):
     notices = []
 
     # イベントの開催期間・交換期間を取得
-    descs = soup.select('p span.em01')
-#    logger.debug("descs: %s", descs)
+    descs = soup.select("p span.em01")
+    #    logger.debug("descs: %s", descs)
     for desc in descs:
         notice = {}
-#        if re.search(pattern1 + pattern2 + pattern3 + pattern4, str(desc)):
+        #        if re.search(pattern1 + pattern2 + pattern3 + pattern4, str(desc)):
         m1 = re.search(pattern, desc.get_text(strip=True))
         if m1:
-            start = re.sub(pattern, r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>:00", m1.group())
-            end = re.sub(pattern, r"\g<s_year>/\g<e_month>/\g<e_day> \g<e_hour>:\g<e_min>:59", m1.group())
+            start = re.sub(
+                pattern,
+                r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>:00",
+                m1.group(),
+            )
+            end = re.sub(
+                pattern,
+                r"\g<s_year>/\g<e_month>/\g<e_day> \g<e_hour>:\g<e_min>:59",
+                m1.group(),
+            )
             year = re.sub(pattern, r"\g<s_year>", m1.group())
             # 空白にならないところまで親要素をたどる
             # お得な攻略方法獲得経験値2倍が「開催期間」としてでてくるのが冗長
@@ -461,7 +462,7 @@ def parse_event(url, target_time=int(time.time())):
                 if kikan == "\n":
                     # NavigableStringオブジェクトを操作したときのAttributeErrorを回避
                     continue
-                elif kikan.get_text(strip=True) in ["", "◆", "開催期間", "受け取り期間"]:
+                if kikan.get_text(strip=True) in ["", "◆", "開催期間", "受け取り期間"]:
                     # 開催期間は配布鯖経験値2倍期間をスキップする手抜き実装
                     # 受け取り期間はログインボーナスをスキップする手抜き実装
                     continue
@@ -501,8 +502,7 @@ def parse_event(url, target_time=int(time.time())):
                 notice["title"] = name
                 notice["type"] = "eventQuest"
                 for n in notices:
-                    if n["name"] == notice["name"] \
-                        and n["end"] == notice["end"]:
+                    if n["name"] == notice["name"] and n["end"] == notice["end"]:
                         duplicate = True
                         break
                 if not duplicate:
@@ -510,11 +510,13 @@ def parse_event(url, target_time=int(time.time())):
 
     # クエストの解放期間を取得
     # 解放期間が直近のクエスト一つを出すよう変更
-    target = soup.select_one('p:-soup-contains("【クエストの開催期間】") ~ table.trbgcolor')
+    target = soup.select_one(
+        'p:-soup-contains("【クエストの開催期間】") ~ table.trbgcolor',
+    )
     if target is None:
         return notices
-    elif len(target.select('tr th')) == 2:
-        for i, tar in enumerate(target.select('tr td')):
+    if len(target.select("tr th")) == 2:
+        for i, tar in enumerate(target.select("tr td")):
             if i % 2 == 0:
                 notice = {}
                 # クエスト名の改行を replace 処理で
@@ -528,7 +530,9 @@ def parse_event(url, target_time=int(time.time())):
             else:
                 m1 = re.search(pattern, tar.get_text(strip=True))
                 if m1:
-                    start_p = r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>:00"
+                    start_p = (
+                        r"\g<s_year>/\g<s_month>/\g<s_day> \g<s_hour>:\g<s_min>:00"
+                    )
                     start = re.sub(pattern, start_p, m1.group())
                     end_p = r"\g<s_year>/\g<e_month>/\g<e_day> \g<e_hour>:\g<e_min>:59"
                     end = re.sub(pattern, end_p, m1.group())
@@ -563,7 +567,9 @@ def parse_event(url, target_time=int(time.time())):
     raid_notice = {}
     pattern0 = r"(?P<s_month>[0-9]{1,2})月(?P<s_day>[0-9]{1,2})日\([日月火水木金土]\)"
 
-    target = soup.select_one('p:-soup-contains("イベント参加中のマスター全員で強敵に挑む、特殊な形式のクエスト")')
+    target = soup.select_one(
+        'p:-soup-contains("イベント参加中のマスター全員で強敵に挑む、特殊な形式のクエスト")',
+    )
     if target is not None:
         m2 = re.search(pattern0 + " " + pattern2, target.get_text(strip=True))
         if m2:
@@ -585,15 +591,18 @@ def parse_page(load_url, target_time=int(time.time())):
     html = requests.get(load_url)
     soup = BeautifulSoup(html.content, "html.parser")
     page_title = soup.find(
-                    'title'
-                    ).text.replace(
-                    "  |  Fate/Grand Order 公式サイト", ""
-                    )
-    for word in ["TIPS"
-                 "重要",
-                 "交換可能なアイテムについて",
-                 "召喚"
-                 ]:
+        "title",
+    ).text.replace(
+        "  |  Fate/Grand Order 公式サイト",
+        "",
+    )
+    for word in [
+        "TIPS重要",
+        "交換可能なアイテムについて",
+        "召喚",
+        "今後のイベント",
+        "ガイドライン",
+    ]:
         if word in page_title:
             return None
     if "キャンペーン" in page_title or "Anniversary" in page_title:
@@ -603,8 +612,7 @@ def parse_page(load_url, target_time=int(time.time())):
     elif "配信" in page_title:
         if "発表" in page_title:
             return {}
-        else:
-            notices = parse_broadcast(load_url)
+        notices = parse_broadcast(load_url)
     elif "メンテナンス" in page_title:
         notices = parse_maintenance(load_url)
     else:
@@ -616,7 +624,7 @@ def get_pages(url, target_time=int(time.time()), recursive=False):
     base_url = "https://news.fate-go.jp"
     html = requests.get(url)
     soup = BeautifulSoup(html.content, "html.parser")
-    tag_item = soup.select('ul.list_news li a')
+    tag_item = soup.select("ul.list_news li a")
     dtime = dt.fromtimestamp(target_time)
     notices = []
 
@@ -639,14 +647,12 @@ def get_pages(url, target_time=int(time.time()), recursive=False):
                             if event["begin"] is not None:
                                 if since_dt.timestamp() > event["begin"]:
                                     return notices
-                else:
-                    if event["begin"] is not None:
-                        if since_dt.timestamp() > event["begin"]:
-                            return notices
-
+                elif event["begin"] is not None:
+                    if since_dt.timestamp() > event["begin"]:
+                        return notices
 
     # 再帰取得(デバッグ用)
-    tag_pager = soup.select_one('div.pager p.prev a')
+    tag_pager = soup.select_one("div.pager p.prev a")
     if tag_pager is not None:
         prev_url = base_url + tag_pager.get("href")
         if recursive:
@@ -677,31 +683,26 @@ def expired_notices(notices, target_time=int(time.time())):
                     if not (since_dt < dt.fromtimestamp(notice["end"]) < until_dt):
                         continue
 
-
         # 終了時間が過ぎた項目はカット
         if notice["end"] is not None:
             if notice["end"] < target_time:
                 continue
-        if notice["type"] == "broadcast" \
-           and notice["begin"] < target_time:
+        if notice["type"] == "broadcast" and notice["begin"] < target_time:
             continue
-        if notice["type"] == "eventQuest" \
-           and "イベント開催期間" in notice["name"] \
-           or "解放" in notice["name"] \
-           and notice["begin"] < target_time:
-           # APIからのデータと重複するため
+        if (
+            notice["type"] == "eventQuest" and "イベント開催期間" in notice["name"]
+        ) or ("解放" in notice["name"] and notice["begin"] < target_time):
+            # APIからのデータと重複するため
             continue
-        if notice["type"] == "campaign" \
-           and notice["begin"] < target_time:
-           # APIからのデータと重複するため
+        if notice["type"] == "campaign" and notice["begin"] < target_time:
+            # APIからのデータと重複するため
             continue
         new_notices.append(notice)
     return new_notices
 
 
 def sort_notices(notices):
-    """
-    ソートと一部の重複除去を行う
+    """ソートと一部の重複除去を行う
     現時点ではAP75%ダウンの重複除去処理のみ
     """
     notices1 = []
@@ -711,8 +712,8 @@ def sort_notices(notices):
             notices1.append(notice)
         else:
             notices2.append(notice)
-    notices1 = sorted(notices1, key=lambda x: x['begin'], reverse=True)
-    notices = notices1 +notices2
+    notices1 = sorted(notices1, key=lambda x: x["begin"], reverse=True)
+    notices = notices1 + notices2
     new_notices = []
     ap75down = False
     for notice in notices:
@@ -753,17 +754,16 @@ def main():
     print(data)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # オプションの解析
     parser = argparse.ArgumentParser(
-                description='Image Parse for FGO Battle Results'
-                )
+        description="Image Parse for FGO Battle Results",
+    )
     # 3. parser.add_argumentで受け取る引数を追加していく
-    parser.add_argument('-l', '--loglevel',
-                        choices=('debug', 'info'), default='info')
+    parser.add_argument("-l", "--loglevel", choices=("debug", "info"), default="info")
 
-    args = parser.parse_args()    # 引数を解析
-    str_f = '%(name)s <%(filename)s-L%(lineno)s> [%(levelname)s] %(message)s'
+    args = parser.parse_args()  # 引数を解析
+    str_f = "%(name)s <%(filename)s-L%(lineno)s> [%(levelname)s] %(message)s"
     logging.basicConfig(
         level=logging.INFO,
         format=str_f,
